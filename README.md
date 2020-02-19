@@ -1,1 +1,1 @@
-# HANG
+# Hierarchical Attention based Neural Generator for Explainable Recommendation

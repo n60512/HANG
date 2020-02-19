@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Neural Model & Attention result
+HANG/log/origin/*/Model/*
+HANG/log/origin/*/VisualizeAttn/*
+
+# Database info
+HANG/utils/DBconnector.py
