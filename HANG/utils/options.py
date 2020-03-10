@@ -8,7 +8,7 @@ class GatherOptions():
     def __init__(self):
         parser = argparse.ArgumentParser(description="train or test CAGAN-v2")
         
-        parser.add_argument("--mode", default="train", choices=["train", "test", 'both', 'showAttn'],
+        parser.add_argument("--mode", default="train", choices=["train", "test", 'both', 'showAttn', 'generation'],
                             help="train or test the model" )
         
         current_time = datetime.datetime.now()
@@ -23,7 +23,10 @@ class GatherOptions():
         parser.add_argument("--setence_max_len", type=int, default=100, help="Max length of sentence")        
         parser.add_argument("--having_interactions", type=int, default=15, help="num of user interactions")        
         parser.add_argument("--epoch", type=int, default=30, help="num of eopch for training")        
+
         parser.add_argument('--num_of_reviews', type=int, default=4, help="number of every user's reviews")
+        parser.add_argument('--num_of_correspond_reviews', type=int, default=4, help="number of correspond net reviews")
+
         parser.add_argument("--batchsize", type=int, default=40, help="input batch size")
         parser.add_argument("--num_of_rating", type=int, default=3, help="number of rating")
         parser.add_argument("--num_of_validate", type=int, default=3, help="number of validate")
@@ -32,9 +35,10 @@ class GatherOptions():
         parser.add_argument('--lr', type=float, default=0.00005, help="initial learning rate for adam")
         parser.add_argument('--dropout', type=float, default=0, help="dropout")
         parser.add_argument('--clip', type=float, default=50.0, help="clip")
+        parser.add_argument('--decoder_learning_ratio', type=float, default=1.0, help="decoder learning ratio")
+        parser.add_argument('--teacher_forcing_ratio', type=float, default=1.0, help="teacher forcing ratio")
 
-
-        parser.add_argument('--netType', default='user_base', help="select net type(user or item base)")
+        parser.add_argument('--net_type', default='user_base', help="select net type(user or item base)")
         parser.add_argument('--selectTable', default='clothing_', help="select db table")
 
         parser.add_argument('--intra_attn_method', default='dualFC', help="intra attention method")
@@ -48,6 +52,13 @@ class GatherOptions():
 
         parser.add_argument("--use_nltk_stopword", default="Y", choices=["Y", "N"], 
             help="Using NLTK stopword")
+        
+        parser.add_argument("--hybird", default="N", choices=["Y", "N"], 
+            help="hybird model")    
+
+        parser.add_argument("--test_on_traindata", default="N", choices=["Y", "N"], 
+            help="Selecting testing on test/train set")
+            
 
         self.parser = parser
 
@@ -62,7 +73,7 @@ class GatherOptions():
         if opt.mode == "test":
             self.parser.add_argument("--model_dir", help="path to load model for test(the largest step or use --step to specify)")
             
-        if opt.mode == "train" or opt.mode == "both":
+        if opt.mode == "train" or opt.mode == "both" or opt.mode == "generation":
             os.makedirs(opt.save_dir, exist_ok=True)
             os.makedirs(opt.save_dir + "/Loss", exist_ok=True)
             os.makedirs(opt.save_dir + "/Model", exist_ok=True)
@@ -73,6 +84,13 @@ class GatherOptions():
         
         if opt.mode == "showAttn":
             os.makedirs(opt.save_dir + "/VisualizeAttn/epoch_{}".format(opt.visulize_attn_epoch), exist_ok=True)
-        
+
+        if opt.mode == "generation":
+            os.makedirs(opt.save_dir + "/GenerateSentences", exist_ok=True)        
+            if opt.test_on_traindata == "Y":
+                os.makedirs(opt.save_dir + "/GenerateSentences/on_train", exist_ok=True)
+            elif opt.test_on_traindata == "N":
+                os.makedirs(opt.save_dir + "/GenerateSentences/on_test", exist_ok=True)        
+
 
         return opt

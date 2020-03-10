@@ -131,6 +131,9 @@ dmypy.json
 # Neural Model & Attention result
 HANG/log/origin/*/Model/*
 HANG/log/origin/*/VisualizeAttn/*
+HANG/log/origin/_?/*/*
 
 # Database info
 HANG/utils/DBconnector.py
+
+
