@@ -6,17 +6,34 @@ import tqdm
 import random
 from utils.model import IntraReviewGRU, HANN, HANN_i, HANN_u, MultiFC, DecoderGRU
 from utils.setup import train_test_setup
+from utils._wtensorboard import _Tensorboard
 from visualization.attention_visualization import Visualization
 
 class RatingRegresstion(train_test_setup):
     def __init__(self, device, net_type, save_dir, voc, prerocess, 
-        training_epoch=100, latent_k=32, hidden_size=300, clip=50,
+        training_epoch=100, latent_k=32, batch_size=40, hidden_size=300, clip=50,
         num_of_reviews = 5, 
         intra_method='dualFC', inter_method='dualFC', 
         learning_rate=0.00001, dropout=0):
         
-        super(RatingRegresstion, self).__init__(device, net_type, save_dir, voc, prerocess, training_epoch, latent_k, hidden_size, clip, num_of_reviews, intra_method, inter_method, learning_rate, dropout)
+        super(RatingRegresstion, self).__init__(device, net_type, save_dir, voc, prerocess, training_epoch, latent_k, batch_size, hidden_size, clip, num_of_reviews, intra_method, inter_method, learning_rate, dropout)
         
+        self._tesorboard = _Tensorboard(self.save_dir + '/tensorboard')
+        self.use_sparsity_review = False
+
+        pass
+    
+    def set_can2sparsity(self, can2sparsity):
+        self.can2sparsity = can2sparsity
+        self.use_sparsity_review = True
+        pass
+
+    def set_testing_batches(self, testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs):
+        self.testing_batches = testing_batches
+        self.testing_external_memorys = testing_external_memorys
+        self.testing_batch_labels = testing_batch_labels
+        self.testing_asins = testing_asins
+        self.testing_reviewerIDs = testing_reviewerIDs
         pass
     
     def set_correspond_batches(self, correspond_batches):
@@ -179,6 +196,15 @@ class RatingRegresstion(train_test_setup):
                 self.training_batches, self.external_memorys, self.candidate_items, self.candidate_users, self.training_batch_labels, 
                 isCatItemVec=isCatItemVec)
 
+
+            RMSE = self.evaluate(
+                IntraGRU, 
+                InterGRU, 
+                isWriteAttn=False,
+                isCatItemVec=isCatItemVec, 
+                )
+
+
             inter_scheduler.step()
             for idx in range(self.num_of_reviews):
                 intra_scheduler[idx].step()
@@ -186,6 +212,20 @@ class RatingRegresstion(train_test_setup):
             num_of_iter = len(self.training_batches[0])*len(self.training_batch_labels)
             current_loss_average = group_loss/num_of_iter
             print('Epoch:{}\tSE:{}\t'.format(Epoch, current_loss_average))
+            print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
+
+
+            self._tesorboard.writer.add_scalar(
+                'Loss/train', 
+                current_loss_average,
+                Epoch
+                )                
+
+            self._tesorboard.writer.add_scalar(
+                'Loss/test', 
+                RMSE,
+                Epoch
+                )                
 
             if(Epoch % store_every == 0 and isStoreModel):
                 torch.save(InterGRU, R'{}/Model/InterGRU_epoch{}'.format(self.save_dir, Epoch))
@@ -196,30 +236,34 @@ class RatingRegresstion(train_test_setup):
                 with open(R'{}/Loss/TrainingLoss.txt'.format(self.save_dir),'a') as file:
                     file.write('Epoch:{}\tSE:{}\n'.format(Epoch, current_loss_average))  
 
+                with open(R'{}/Loss/TestingLoss.txt'.format(self.save_dir),'a') as file:
+                    file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE)) 
+
+
+
         pass
 
-    def evaluate(self, IntraGRU, InterGRU, training_batches, training_asin_batches, validate_batch_labels, validate_asins, validate_reviewerIDs, 
-        isCatItemVec=False, isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
+    def evaluate(self, IntraGRU, InterGRU, isCatItemVec=False, isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
         
         group_loss = 0
         # Voutput = visulizeOutput.WriteSentenceHeatmap(opt.save_dir, opt.num_of_reviews)
         AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
 
-        for batch_ctr in range(len(training_batches[0])): #how many batches
-            for idx in range(len(validate_batch_labels)):
-                for reviews_ctr in range(len(training_batches)): #loop review 1 to 5
+        for batch_ctr in range(len(self.testing_batches[0])): #how many batches
+            for idx in range(len(self.testing_batch_labels)):
+                for reviews_ctr in range(len(self.testing_batches)): #loop review 1 to 5
                     
-                    current_batch = training_batches[reviews_ctr][batch_ctr]
+                    current_batch = self.testing_batches[reviews_ctr][batch_ctr]
                     
                     input_variable, lengths, ratings = current_batch
                     input_variable = input_variable.to(self.device)
                     lengths = lengths.to(self.device)
 
-                    current_asins = torch.tensor(validate_asins[idx][batch_ctr]).to(self.device)
-                    current_reviewerIDs = torch.tensor(validate_reviewerIDs[idx][batch_ctr]).to(self.device)
+                    current_asins = torch.tensor(self.testing_asins[idx][batch_ctr]).to(self.device)
+                    current_reviewerIDs = torch.tensor(self.testing_reviewerIDs[idx][batch_ctr]).to(self.device)
             
                     # Concat. asin feature
-                    this_asins = training_asin_batches[reviews_ctr][batch_ctr]
+                    this_asins = self.testing_external_memorys[reviews_ctr][batch_ctr]
                     this_asins = torch.tensor([val for val in this_asins]).to(self.device)
                     this_asins = this_asins.unsqueeze(0)
 
@@ -275,7 +319,7 @@ class RatingRegresstion(train_test_setup):
                             for index__, val in enumerate(inter_attn_wts):
                                 file.write('{} ,{}\n'.format(index__, val))           
                 
-                current_labels = torch.tensor(validate_batch_labels[idx][batch_ctr]).to(self.device)
+                current_labels = torch.tensor(self.testing_batch_labels[idx][batch_ctr]).to(self.device)
 
                 err = (outputs*(5-1)+1) - current_labels
                 loss = torch.mul(err, err)
@@ -286,7 +330,7 @@ class RatingRegresstion(train_test_setup):
 
                 group_loss += loss
 
-        num_of_iter = len(training_batches[0])*len(validate_batch_labels)
+        num_of_iter = len(self.testing_batches[0])*len(self.testing_batch_labels)
         RMSE = group_loss/num_of_iter
 
         return RMSE
@@ -655,7 +699,8 @@ class RatingRegresstion(train_test_setup):
                 self.training_batches, self.external_memorys, self.candidate_items, self.candidate_users, 
                 self.training_batch_labels, 
                 self.correspond_batches,
-                isCatItemVec=isCatItemVec)                
+                isCatItemVec=isCatItemVec
+                )                
 
             # Adjust optimizer group
             inter_scheduler.step()
@@ -671,6 +716,16 @@ class RatingRegresstion(train_test_setup):
             current_loss_average = group_loss/num_of_iter
             print('Epoch:{}\tSE:{}\t'.format(Epoch, current_loss_average))
 
+
+            RMSE = self._hybird_evaluate(
+                intra_GRU, inter_GRU, correspond_intra_GRU, correspond_inter_GRU, MFC,
+                self.testing_batches, self.testing_external_memorys, self.testing_batch_labels, 
+                self.testing_asins, self.testing_reviewerIDs,
+                self.testing_correspond_batches, 
+                isCatItemVec=isCatItemVec
+                )
+            print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
+
             if(Epoch % store_every == 0 and isStoreModel):
                 torch.save(inter_GRU, R'{}/Model/InterGRU_epoch{}'.format(self.save_dir, Epoch))
                 for idx__, IntraGRU__ in enumerate(intra_GRU):
@@ -685,6 +740,9 @@ class RatingRegresstion(train_test_setup):
             if WriteTrainLoss:
                 with open(R'{}/Loss/TrainingLoss.txt'.format(self.save_dir),'a') as file:
                     file.write('Epoch:{}\tSE:{}\n'.format(Epoch, current_loss_average))  
+
+                with open(R'{}/Loss/TestingLoss.txt'.format(self.save_dir),'a') as file:
+                    file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))  
         pass
 
     def _hybird_evaluate(self, IntraGRU, InterGRU, correspond_intra_GRU, correspond_inter_GRU, MFC,
@@ -714,7 +772,8 @@ class RatingRegresstion(train_test_setup):
                     this_asins = this_asins.unsqueeze(0)
 
                     with torch.no_grad():
-                        outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](input_variable, lengths, 
+                        outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](
+                            input_variable, lengths, 
                             current_asins, current_reviewerIDs)
                         outputs = outputs.unsqueeze(0)
 
@@ -723,48 +782,11 @@ class RatingRegresstion(train_test_setup):
                             interInput_asin = this_asins
                         else:
                             interInput = torch.cat((interInput, outputs) , 0) 
-                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
-
-                    # Writing Intra-attention weight to .html file
-                    if(isWriteAttn):
-                        if(self.net_type=='user_base'):
-                            current_candidates = current_reviewerIDs
-                        elif(self.net_type=='item_base'):
-                            current_candidates = current_asins
-                            pass
-                        
-                        for index_ , candidateObj_ in enumerate(current_candidates):
-
-                            intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
-                            word_indexes = input_variable[:,index_].tolist()
-
-                            # Voutput.js(intra_attn_wts, word_indexes, voc.index2word, reviews_ctr, fname='{}@{}'.format( userObj.index2reviewerID[user_.item()], reviews_ctr))
-                            
-                            sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
-                            AttnVisualize.createHTML(sentence, weights, reviews_ctr, 
-                                fname='{}@{}'.format( userObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
-                                )
+                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0)
                                 
                 with torch.no_grad():
                     outputs, intra_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
                     outputs = outputs.squeeze(1)
-
-                # Writing Inter-attention weight to .txt file
-                if(isWriteAttn):
-                    if(self.net_type=='user_base'):
-                        current_candidates = current_reviewerIDs
-                    elif(self.net_type=='item_base'):
-                        current_candidates = current_asins
-                        pass                
-
-                    for index_ , candidateObj_ in enumerate(current_candidates):
-                        inter_attn_wts = inter_attn_score.squeeze(2)[:,index_].tolist()
-                        with open('{}/VisualizeAttn/inter.txt'.format(opt.save_dir), 'a') as file:
-                            file.write("=================================\nCandidateObj: {}\n".
-                                format(userObj.index2reviewerID[candidateObj_.item()]))
-                            for index__, val in enumerate(inter_attn_wts):
-                                file.write('{} ,{}\n'.format(index__, val))           
-                
 
 
                 """correspond"""
@@ -817,3 +839,7 @@ class RatingRegresstion(train_test_setup):
         RMSE = group_loss/num_of_iter
 
         return RMSE
+
+    def set_testing_correspond_batches(self, testing_correspond_batches):
+        self.testing_correspond_batches = testing_correspond_batches
+        pass

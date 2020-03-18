@@ -1,6 +1,6 @@
 class train_test_setup():
     def __init__(self, device, net_type, save_dir, voc, prerocess, 
-        training_epoch=100, latent_k=32, hidden_size=300, clip=50,
+        training_epoch=100, latent_k=32, batch_size=40, hidden_size=300, clip=50,
         num_of_reviews = 5, 
         intra_method='dualFC', inter_method='dualFC', 
         learning_rate=0.00001, dropout=0):
@@ -21,6 +21,7 @@ class train_test_setup():
         self.inter_method = inter_method
         self.learning_rate = learning_rate
         self.dropout = dropout
+        self.batch_size = batch_size
     
         pass
 
@@ -35,4 +36,8 @@ class train_test_setup():
         self.candidate_items = candidate_items
         self.candidate_users = candidate_users
         self.training_batch_labels = training_batch_labels
+        pass
+    
+    def set_asin2title(self, asin2title):
+        self.asin2title = asin2title
         pass

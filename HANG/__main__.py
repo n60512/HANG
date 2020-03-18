@@ -43,14 +43,14 @@ def _single_model(data_preprocess):
         pretrain_wordVec = None
 
 
-    if(opt.mode == "train" or opt.mode == "both"):
+    if(opt.mode == "train"):
 
         # Generate train set && candidate
         training_batch_labels, candidate_asins, candidate_reviewerIDs, _ = data_preprocess.get_train_set(CANDIDATE, 
             itemObj, 
             userObj, 
             voc,
-            batchsize=40, 
+            batchsize=opt.batchsize, 
             num_of_reviews=5, 
             num_of_rating=1
             )
@@ -66,118 +66,32 @@ def _single_model(data_preprocess):
             num_of_reviews=opt.num_of_reviews, 
             batch_size=opt.batchsize)
 
-    if(True):
-        # Train model by `rating regression`
-        rating_regresstion = RatingRegresstion(device, opt.net_type, opt.save_dir, voc, data_preprocess, 
-            training_epoch=opt.epoch, latent_k=opt.latentK, hidden_size=opt.hidden, clip=opt.clip,
-            num_of_reviews = opt.num_of_reviews, 
-            intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
-            learning_rate=opt.lr, dropout=opt.dropout)
-
-        rating_regresstion.set_training_batches(training_sentences_batches, external_memorys, candidate_asins, candidate_reviewerIDs, training_batch_labels)
-        rating_regresstion.train(opt.selectTable, isStoreModel=True, WriteTrainLoss=True, store_every = opt.save_model_freq, 
-            use_pretrain_item=False, isCatItemVec=True, pretrain_wordVec=pretrain_wordVec)
     
+    # Construct rating regression class
+    rating_regresstion = RatingRegresstion(device, opt.net_type, opt.save_dir, voc, data_preprocess, 
+        training_epoch=opt.epoch, latent_k=opt.latentK, batch_size=opt.batchsize, hidden_size=opt.hidden, clip=opt.clip,
+        num_of_reviews = opt.num_of_reviews, 
+        intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
+        learning_rate=opt.lr, dropout=opt.dropout)
+
+    
+    if(opt.mode == "train"):
+        rating_regresstion.set_training_batches(training_sentences_batches, external_memorys, candidate_asins, candidate_reviewerIDs, training_batch_labels)   
 
     # Generate testing batches
-    if(opt.mode == "test" or opt.mode == "showAttn" or opt.mode == "both"):
+    if(opt.mode == "test" or opt.mode == "showAttn" or opt.mode == "train"):
 
         # Loading testing data from database
-        res, itemObj, userObj = data_preprocess.load_data(sqlfile=opt.sqlfile, testing=True, table=opt.selectTable, rand_seed=opt.train_test_rand_seed)   # clothing
+        res, itemObj, userObj = data_preprocess.load_data(sqlfile=opt.sqlfile, testing=True, table=opt.selectTable, rand_seed=opt.train_test_rand_seed, test_on_train_data=False)   # clothing
         # If mode = test, won't generate a new voc.
         CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(res, having_interaction=opt.having_interactions, generate_voc=False, 
             net_type = opt.net_type)
 
-        testing_batch_labels, candidate_asins, candidate_reviewerIDs, _ = data_preprocess.get_train_set(CANDIDATE, 
+        testing_batch_labels, testing_asins, testing_reviewerIDs, _ = data_preprocess.get_train_set(CANDIDATE, 
             itemObj, 
             userObj, 
             voc,
-            batchsize=40, 
-            num_of_reviews=5, 
-            num_of_rating=1
-            )
-
-        # Generate testing batches
-        testing_batches, testing_asin_batches = data_preprocess.GenerateTrainingBatches(CANDIDATE, userObj, voc, net_type = opt.net_type,
-            num_of_reviews=opt.num_of_reviews, batch_size=opt.batchsize, testing=True)
-
-
-    # Testing
-    if(opt.mode == "test" or opt.mode == "both"):
-        # Evaluation (testing data)
-        for Epoch in range(0, opt.epoch, opt.save_model_freq):
-            # Loading IntraGRU
-            IntraGRU = list()
-            for idx in range(opt.num_of_reviews):
-                model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, Epoch))
-                IntraGRU.append(model)
-
-            # Loading InterGRU
-            InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, Epoch))
-
-            rating_regresstion = RatingRegresstion(device, opt.net_type, opt.save_dir, voc, data_preprocess, 
-                training_epoch=opt.epoch, latent_k=opt.latentK, hidden_size=opt.hidden, clip=opt.clip,
-                num_of_reviews = opt.num_of_reviews, 
-                intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
-                learning_rate=opt.lr, dropout=opt.dropout)            
-                
-            RMSE = rating_regresstion.evaluate(IntraGRU, InterGRU, testing_batches, testing_asin_batches, testing_batch_labels, candidate_asins, candidate_reviewerIDs, 
-                isCatItemVec=True, visulize_attn_epoch=opt.epoch)
-
-            print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
-
-            with open(R'{}/Loss/TestingLoss.txt'.format(opt.save_dir),'a') as file:
-                file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))    
-
-    # Testing (with showing attention weight)
-    if(opt.mode == "showAttn"):
-        # Loading IntraGRU
-        IntraGRU = list()
-        for idx in range(opt.num_of_reviews):
-            model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, opt.visulize_attn_epoch))
-            IntraGRU.append(model)
-
-        # Loading InterGRU
-        InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, opt.visulize_attn_epoch))
-
-        # evaluating
-        RMSE = evaluate(IntraGRU, InterGRU, testing_batches, testing_asin_batches, testing_batch_labels, candidate_asins, candidate_reviewerIDs, 
-            isCatItemVec=True, isWriteAttn=True, userObj=userObj)
-
-    pass
-
-
-def _hybird_model(data_preprocess):
-
-
-    user_base_sql = R'HANG/SQL/cloth_interaction@6_rm_sw.sql'
-    item_base_sql = R'HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql'
-
-    res, itemObj, userObj = data_preprocess.load_data(sqlfile=opt.sqlfile, 
-        testing=False, table= opt.selectTable, rand_seed=opt.train_test_rand_seed)  # for clothing.
-
-    # Generate voc & (User or Item) information , CANDIDATE could be USER or ITEM
-    voc, CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(res, 
-        having_interaction=opt.having_interactions, 
-        net_type = opt.net_type)
-
-    # pre-train words
-    if(opt.use_pretrain_word == 'Y'):
-        weights_matrix = data_preprocess.load_pretain_word(voc, pretrain_words)
-        weights_tensor = torch.FloatTensor(weights_matrix)
-        pretrain_wordVec = nn.Embedding.from_pretrained(weights_tensor).to(device)           
-    else:
-        pretrain_wordVec = None
-
-
-    if(opt.mode == "train" or opt.mode == "both"):
-
-        # Generate train set && candidate
-        training_batch_labels, candidate_asins, candidate_reviewerIDs, _ = data_preprocess.get_train_set(CANDIDATE, 
-            itemObj, 
-            userObj, 
-            voc,
-            batchsize=40, 
+            batchsize=opt.batchsize, 
             num_of_reviews=5, 
             num_of_rating=1
             )
@@ -187,56 +101,28 @@ def _hybird_model(data_preprocess):
         elif(opt.net_type == 'item_base'):
             candidateObj = userObj
 
-
-        # Generate `training set batches`
-        training_sentences_batches, external_memorys = data_preprocess.GenerateTrainingBatches(CANDIDATE, candidateObj, voc, 
-            net_type = opt.net_type, 
-            num_of_reviews=opt.num_of_reviews, 
-            batch_size=opt.batchsize)
-
-
-
-
-
-    if(opt.mode == "train" or opt.mode == "both"):
-
-        # Train model by `rating regression`
-        rating_regresstion = RatingRegresstion(device, opt.net_type, opt.save_dir, voc, data_preprocess, 
-            training_epoch=opt.epoch, latent_k=opt.latentK, hidden_size=opt.hidden, clip=opt.clip,
-            num_of_reviews = opt.num_of_reviews, 
-            intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
-            learning_rate=opt.lr, dropout=opt.dropout)
-
-        rating_regresstion.set_training_batches(training_sentences_batches, external_memorys, candidate_asins, candidate_reviewerIDs, training_batch_labels)
-        rating_regresstion.train(opt.selectTable, isStoreModel=True, WriteTrainLoss=True, store_every = opt.save_model_freq, 
-            use_pretrain_item=False, isCatItemVec=True, pretrain_wordVec=pretrain_wordVec)
-
-
-    # Generate testing batches
-    if(opt.mode == "test" or opt.mode == "showAttn" or opt.mode == "both"):
-
-        # Loading testing data from database
-        res, itemObj, userObj = data_preprocess.load_data(sqlfile=opt.sqlfile, testing=True, table=opt.selectTable, rand_seed=opt.train_test_rand_seed)   # clothing
-        # If mode = test, won't generate a new voc.
-        CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(res, having_interaction=opt.having_interactions, generate_voc=False, 
-            net_type = opt.net_type)
-
-        testing_batch_labels, candidate_asins, candidate_reviewerIDs, _ = data_preprocess.get_train_set(CANDIDATE, 
-            itemObj, 
-            userObj, 
-            voc,
-            batchsize=40, 
-            num_of_reviews=5, 
-            num_of_rating=1
-            )
-
         # Generate testing batches
-        testing_batches, testing_asin_batches = data_preprocess.GenerateTrainingBatches(CANDIDATE, userObj, voc, net_type = opt.net_type,
+        testing_batches, testing_external_memorys = data_preprocess.GenerateTrainingBatches(CANDIDATE, candidateObj, voc, net_type = opt.net_type,
             num_of_reviews=opt.num_of_reviews, batch_size=opt.batchsize, testing=True)
+
+        rating_regresstion.set_testing_batches(testing_batches, testing_external_memorys, 
+            testing_batch_labels, testing_asins, testing_reviewerIDs)
+
+    """Start training process."""
+    if(opt.mode == "train"):
+        rating_regresstion.train(
+            opt.selectTable, 
+            isStoreModel=True, 
+            WriteTrainLoss=True, 
+            store_every = opt.save_model_freq, 
+            use_pretrain_item=False, 
+            isCatItemVec=True, 
+            pretrain_wordVec=pretrain_wordVec
+            )    
 
 
     # Testing
-    if(opt.mode == "test" or opt.mode == "both"):
+    if(opt.mode == "test"):
         # Evaluation (testing data)
         for Epoch in range(0, opt.epoch, opt.save_model_freq):
             # Loading IntraGRU
@@ -249,33 +135,19 @@ def _hybird_model(data_preprocess):
             InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, Epoch))
 
             rating_regresstion = RatingRegresstion(device, opt.net_type, opt.save_dir, voc, data_preprocess, 
-                training_epoch=opt.epoch, latent_k=opt.latentK, hidden_size=opt.hidden, clip=opt.clip,
+                training_epoch=opt.epoch, latent_k=opt.latentK, batch_size=opt.batchsize, hidden_size=opt.hidden, clip=opt.clip,
                 num_of_reviews = opt.num_of_reviews, 
                 intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
-                learning_rate=opt.lr, dropout=opt.dropout)            
+                learning_rate=opt.lr, dropout=opt.dropout)
+       
                 
-            RMSE = rating_regresstion.evaluate(IntraGRU, InterGRU, testing_batches, testing_asin_batches, testing_batch_labels, candidate_asins, candidate_reviewerIDs, 
+            RMSE = rating_regresstion.evaluate(IntraGRU, InterGRU, testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs, 
                 isCatItemVec=True, visulize_attn_epoch=opt.epoch)
 
             print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
 
             with open(R'{}/Loss/TestingLoss.txt'.format(opt.save_dir),'a') as file:
                 file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))    
-
-    # Testing (with showing attention weight)
-    if(opt.mode == "showAttn"):
-        # Loading IntraGRU
-        IntraGRU = list()
-        for idx in range(opt.num_of_reviews):
-            model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, opt.visulize_attn_epoch))
-            IntraGRU.append(model)
-
-        # Loading InterGRU
-        InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, opt.visulize_attn_epoch))
-
-        # evaluating
-        RMSE = evaluate(IntraGRU, InterGRU, testing_batches, testing_asin_batches, testing_batch_labels, candidate_asins, candidate_reviewerIDs, 
-            isCatItemVec=True, isWriteAttn=True, userObj=userObj)
 
     pass
 

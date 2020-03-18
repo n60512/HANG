@@ -137,3 +137,6 @@ HANG/log/origin/_?/*/*
 HANG/utils/DBconnector.py
 
 
+HANG/log/origin/*/*/Model/*
+
+HANG/data/pretrain_itembase_model/*

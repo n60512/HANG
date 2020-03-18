@@ -1,0 +1,1 @@
+SELECT reviewText from clothing_review;

@@ -1,7 +1,8 @@
 WITH rand_train_set AS ( 
 	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
 	ORDER BY RAND() 
-	LIMIT 15000
+	LIMIT 15040 	
+	-- LIMIT 15000 
 	-- LIMIT 1000 
 	) 
 , candidate_set AS ( 
@@ -24,7 +25,8 @@ ORDER BY reviewerID,unixReviewTime ASC
 WITH rand_train_set AS ( 
 	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
 	ORDER BY RAND() 
-	LIMIT 15000
+	LIMIT 15040 	
+	-- LIMIT 15000 
 	-- LIMIT 1000 
 	) 
 , tmptable AS ( 

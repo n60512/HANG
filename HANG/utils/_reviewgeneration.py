@@ -10,18 +10,18 @@ from visualization.attention_visualization import Visualization
 
 class ReviewGeneration(train_test_setup):
     def __init__(self, device, net_type, save_dir, voc, prerocess, 
-        training_epoch=100, latent_k=32, hidden_size=300, clip=50,
-        num_of_reviews = 5, 
+        training_epoch=100, latent_k=32, batch_size=40, hidden_size=300, clip=50,
+        num_of_reviews = 5,
         intra_method='dualFC', inter_method='dualFC', 
         learning_rate=0.00001, dropout=0):
         
-        super(ReviewGeneration, self).__init__(device, net_type, save_dir, voc, prerocess, training_epoch, latent_k, hidden_size, clip, num_of_reviews, intra_method, inter_method, learning_rate, dropout)
+        super(ReviewGeneration, self).__init__(device, net_type, save_dir, voc, prerocess, training_epoch, latent_k, batch_size, hidden_size, clip, num_of_reviews, intra_method, inter_method, learning_rate, dropout)
 
         # Default word tokens
         self.PAD_token = 0  # Used for padding short sentences
         self.SOS_token = 1  # Start-of-sentence token
         self.EOS_token = 2  # End-of-sentence token   
-        self.batch_size = 40     
+        # self.batch_size = batch_size
         self.teacher_forcing_ratio = 1.0
         
         pass    
@@ -68,6 +68,7 @@ class ReviewGeneration(train_test_setup):
                 # If turning HANN
                 if(self.tuning_hann):
                     InterGRU_optimizer.zero_grad()
+                    DecoderModel_optimizer.zero_grad()
                     for reviews_ctr in range(len(training_batches)): # iter. through reviews
                         IntraGRU_optimizer[reviews_ctr].zero_grad()
 
@@ -119,7 +120,7 @@ class ReviewGeneration(train_test_setup):
                 # HANN loss of this epoch
                 hann_epoch_loss += hann_loss
                 
-
+                
 
                 """
                 Runing Decoder
@@ -164,7 +165,7 @@ class ReviewGeneration(train_test_setup):
                         _, topi = decoder_output.topk(1)
 
                         decoder_input = torch.LongTensor([[topi[i][0] for i in range(self.batch_size)]])
-                        decoder_input = decoder_input.to(device)
+                        decoder_input = decoder_input.to(self.device)
 
                         # Calculate and accumulate loss
                         nll_loss = criterion(decoder_output, target_variable[t])
@@ -197,12 +198,12 @@ class ReviewGeneration(train_test_setup):
 
         return hann_epoch_loss, decoder_epoch_loss
 
-    def set_tune_option(self, user_pretrain_hann=False, tuning_hann=True):
-        self.user_pretrain_hann = user_pretrain_hann
+    def set_tune_option(self, use_pretrain_hann=False, tuning_hann=True):
+        self.use_pretrain_hann = use_pretrain_hann
         self.tuning_hann = tuning_hann
         pass
 
-    def train_grm(self, select_table, isStoreModel=False, isStoreCheckPts=False, WriteTrainLoss=False, store_every = 2, 
+    def train_grm(self, select_table, isStoreModel=False, isStoreCheckPts=False, ep_to_store=0, WriteTrainLoss=False, store_every = 2, 
             use_pretrain_item= False, isCatItemVec= True, pretrain_wordVec=None):
         
         asin, reviewerID = self._get_asin_reviewer()
@@ -225,9 +226,9 @@ class ReviewGeneration(train_test_setup):
         IntraGRU = list()
 
 
-        if(self.user_pretrain_hann):
-            pretrain_model_path = ''
-            _ep =''
+        if(self.use_pretrain_hann):
+            pretrain_model_path = 'HANG/data/pretrain_itembase_model'
+            _ep ='2'
             IntraGRU, InterGRU = self._load_pretrain_hann(pretrain_model_path, _ep)
 
             # Use appropriate device
@@ -280,13 +281,16 @@ class ReviewGeneration(train_test_setup):
 
         # Initialize DecoderGRU models and optimizers
         DecoderModel = DecoderGRU(embedding, self.hidden_size, self.voc.num_words, n_layers=1, dropout=self.dropout)
+        print(DecoderModel)
+        print(InterGRU)
         # Use appropriate device
         DecoderModel = DecoderModel.to(self.device)
         DecoderModel.train()
         # Initialize DecoderGRU optimizers    
         DecoderModel_optimizer = optim.AdamW(DecoderModel.parameters(), 
                 lr=self.learning_rate * self.decoder_learning_ratio, 
-                weight_decay=0.001)    
+                weight_decay=0.001
+                )    
 
         print('Models built and ready to go!')        
 
@@ -309,7 +313,7 @@ class ReviewGeneration(train_test_setup):
 
             print('Epoch:{}\tHANN(SE):{}\tNNL:{}\t'.format(Epoch, hann_loss_average, decoder_loss_average))
 
-            if(Epoch % store_every == 0 and isStoreModel):
+            if(Epoch % store_every == 0 and isStoreModel and Epoch >= ep_to_store):
                 torch.save(InterGRU, R'{}/Model/InterGRU_epoch{}'.format(self.save_dir, Epoch))
                 torch.save(DecoderModel, R'{}/Model/DecoderModel_epoch{}'.format(self.save_dir, Epoch))
                 for idx__, IntraGRU__ in enumerate(IntraGRU):
@@ -319,4 +323,222 @@ class ReviewGeneration(train_test_setup):
                 with open(R'{}/Loss/TrainingLoss.txt'.format(self.save_dir),'a') as file:
                     file.write('Epoch:{}\tHANN(SE):{}\tNNL:{}\n'.format(Epoch, hann_loss_average, decoder_loss_average))
 
+
+
+            # evaluating
+            RMSE = self.evaluate_mse(
+                IntraGRU, InterGRU, isCatItemVec=True
+                )
+            print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
+
+            with open(R'{}/Loss/TestingLoss.txt'.format(self.save_dir),'a') as file:
+                file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))   
+
         pass
+
+    def set_testing_batches(self, testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs, testing_label_sentences):
+        self.testing_batches = testing_batches
+        self.testing_external_memorys = testing_external_memorys
+        self.testing_batch_labels = testing_batch_labels
+        self.testing_asins = testing_asins
+        self.testing_reviewerIDs = testing_reviewerIDs
+        self.testing_label_sentences = testing_label_sentences
+        pass
+
+    def evaluate_generation(self, IntraGRU, InterGRU, DecoderModel, 
+        isCatItemVec=False, isWriteAttn=False, userObj=None, itemObj=None, voc=None):
+        
+
+        tokens_dict = dict()
+        scores_dict = dict()
+
+        for batch_ctr in range(len(self.testing_batches[0])): #how many batches
+            for idx in range(len(self.testing_batch_labels)):
+                for reviews_ctr in range(len(self.testing_batches)): #loop review 1 to 5
+                    
+                    current_batch = self.testing_batches[reviews_ctr][batch_ctr]
+                    
+                    input_variable, lengths, ratings = current_batch
+                    input_variable = input_variable.to(self.device)
+                    lengths = lengths.to(self.device)
+
+                    current_asins = torch.tensor(self.testing_asins[idx][batch_ctr]).to(self.device)
+                    current_reviewerIDs = torch.tensor(self.testing_reviewerIDs[idx][batch_ctr]).to(self.device)
+            
+                    # Concat. asin feature
+                    this_asins = self.testing_external_memorys[reviews_ctr][batch_ctr]
+                    this_asins = torch.tensor([val for val in this_asins]).to(self.device)
+                    this_asins = this_asins.unsqueeze(0)
+
+                    with torch.no_grad():
+                        outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](input_variable, lengths, 
+                            current_asins, current_reviewerIDs)
+                        outputs = outputs.unsqueeze(0)
+
+                        if(reviews_ctr == 0):
+                            interInput = outputs
+                            interInput_asin = this_asins
+                        else:
+                            interInput = torch.cat((interInput, outputs) , 0) 
+                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
+
+                                
+                with torch.no_grad():
+                    outputs, inter_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                    outputs = outputs.squeeze(1)
+
+                
+                # Caculate Square loss of HANN 
+                current_rating_labels = torch.tensor(self.testing_batch_labels[idx][batch_ctr]).to(self.device)
+                predict_rating = (outputs*(5-1)+1)
+                err = predict_rating - current_rating_labels
+
+
+                """
+                Greedy Search Strategy Decoder
+                """
+
+                # Create initial decoder input (start with SOS tokens for each sentence)
+                decoder_input = torch.LongTensor([[self.SOS_token for _ in range(self.batch_size)]])
+                decoder_input = decoder_input.to(self.device)    
+
+                # Set initial decoder hidden state to the inter_hidden's final hidden state
+                criterion = nn.NLLLoss()
+                loss = 0
+                decoder_hidden = inter_hidden
+
+
+                # Ground true sentences
+                target_batch = self.testing_label_sentences[0][batch_ctr]
+                target_variable, target_len, _ = target_batch   
+                max_target_len = max(target_len)
+                target_variable = target_variable.to(self.device)  
+
+
+                # Initialize tensors to append decoded words to
+                all_tokens = torch.zeros([0], device=self.device, dtype=torch.long)
+                all_scores = torch.zeros([0], device=self.device)            
+
+                
+                for t in range(max_target_len):
+                    decoder_output, decoder_hidden = DecoderModel(
+                        decoder_input, decoder_hidden
+                    )
+                    # No teacher forcing: next input is decoder's own current output
+                    decoder_scores_, topi = decoder_output.topk(1)
+
+                    decoder_input = torch.LongTensor([[topi[i][0] for i in range(self.batch_size)]])
+                    decoder_input = decoder_input.to(self.device)
+
+                    ds, di = torch.max(decoder_output, dim=1)
+
+
+                    # Record token and score
+                    all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
+                    all_scores = torch.cat((all_scores, torch.t(decoder_scores_)), dim=0)                
+
+                    # Calculate and accumulate loss
+                    nll_loss = criterion(decoder_output, target_variable[t])
+                    loss += nll_loss
+
+
+                for index_ , user_ in enumerate(current_reviewerIDs):
+                    asin_ = current_asins[index_]
+
+                    current_user_tokens = all_tokens[:,index_].tolist()
+                    decoded_words = [voc.index2word[token] for token in current_user_tokens if token != 0]
+                    predict_rating, current_rating_labels[index_].item()
+
+                    try:
+                        product_title = self.asin2title[
+                            itemObj.index2asin[asin_.item()]
+                        ]
+                    except Exception as ex:
+                        product_title = 'Nones'
+                        pass
+
+
+                    generate_text = str.format('=========================\nUserid & asin:{},{}\ntitle:{}\nPredict:{:10.3f}\nRating:{:10.3f}\nGenerate: {}\n'.format(
+                        userObj.index2reviewerID[user_.item()], 
+                        itemObj.index2asin[asin_.item()],
+                        product_title,
+                        predict_rating[index_].item(),
+                        current_rating_labels[index_].item(),
+                        ' '.join(decoded_words)))
+
+                    current_user_sen = target_variable[:,index_].tolist()
+                    origin_sen = [voc.index2word[token] for token in current_user_sen if token != 0]
+
+                    generate_text = generate_text + str.format('Origin: {}\n'.format(' '.join(origin_sen)))
+
+                    if self.test_on_train_data:
+                        fpath = R'{}/GenerateSentences/on_train/sentences_ep{}.txt'.format(self.save_dir, self.training_epoch)
+                    else:
+                        fpath = R'{}/GenerateSentences/on_test/sentences_ep{}.txt'.format(self.save_dir, self.training_epoch)
+
+                    with open(fpath,'a') as file:
+                        file.write(generate_text)     
+
+        return tokens_dict, scores_dict
+    
+    def set_testing_set(self, test_on_train_data='Y'):
+        if test_on_train_data == 'Y':
+            self.test_on_train_data = True
+        elif test_on_train_data == 'N':
+            self.test_on_train_data = False
+
+    def evaluate_mse(self, IntraGRU, InterGRU, isCatItemVec=False, isWriteAttn=False):    
+        
+        group_loss = 0
+
+        for batch_ctr in range(len(self.testing_batches[0])): #how many batches
+            for idx in range(len(self.testing_batch_labels)):
+                for reviews_ctr in range(len(self.testing_batches)): #loop review 1 to 5
+                    
+                    current_batch = self.testing_batches[reviews_ctr][batch_ctr]
+                    
+                    input_variable, lengths, ratings = current_batch
+                    input_variable = input_variable.to(self.device)
+                    lengths = lengths.to(self.device)
+
+                    current_asins = torch.tensor(self.testing_asins[idx][batch_ctr]).to(self.device)
+                    current_reviewerIDs = torch.tensor(self.testing_reviewerIDs[idx][batch_ctr]).to(self.device)
+            
+                    # Concat. asin feature
+                    this_asins = self.testing_external_memorys[reviews_ctr][batch_ctr]
+                    this_asins = torch.tensor([val for val in this_asins]).to(self.device)
+                    this_asins = this_asins.unsqueeze(0)
+
+                    with torch.no_grad():
+                        outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](input_variable, lengths, 
+                            current_asins, current_reviewerIDs)
+                        outputs = outputs.unsqueeze(0)
+
+                        if(reviews_ctr == 0):
+                            interInput = outputs
+                            interInput_asin = this_asins
+                        else:
+                            interInput = torch.cat((interInput, outputs) , 0) 
+                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
+
+                                
+                with torch.no_grad():
+                    outputs, intra_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                    outputs = outputs.squeeze(1)
+     
+                
+                current_labels = torch.tensor(self.testing_batch_labels[idx][batch_ctr]).to(self.device)
+
+                err = (outputs*(5-1)+1) - current_labels
+                loss = torch.mul(err, err)
+                loss = torch.mean(loss, dim=0)
+
+
+                loss = torch.sqrt(loss)
+
+                group_loss += loss
+
+        num_of_iter = len(self.testing_batches[0])*len(self.testing_batch_labels)
+        RMSE = group_loss/num_of_iter
+
+        return RMSE

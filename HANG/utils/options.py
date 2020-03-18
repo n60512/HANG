@@ -6,19 +6,20 @@ import datetime
 
 class GatherOptions():
     def __init__(self):
-        parser = argparse.ArgumentParser(description="train or test CAGAN-v2")
+        parser = argparse.ArgumentParser(description="train or test HANG")
         
-        parser.add_argument("--mode", default="train", choices=["train", "test", 'both', 'showAttn', 'generation'],
+        parser.add_argument("--mode", default="train", choices=["train", "test", 'both', 'showAttn', 'generation', 'eval_mse'],
                             help="train or test the model" )
         
         current_time = datetime.datetime.now()
         parser.add_argument("--save_dir", default=("HANG/log/origin/{:%Y%m%d_%H_%M}".format(current_time)), help="path for saving model")
-        # parser.add_argument("--model_dir", help="path to load model for test(the largest step or use --step to specify)")
+        parser.add_argument("--minor_path", default='', help="another save place")
         
         parser.add_argument('--sqlfile', default='', help="loacl sql cmd file")
         parser.add_argument("--train_test_rand_seed", type=int, default=42, help="rand seed for data seleting")        
 
         parser.add_argument('--save_model_freq', type=int, default=1, help="frequency of saving model")
+        parser.add_argument('--epoch_to_store', type=int, default=0, help="")
         
         parser.add_argument("--setence_max_len", type=int, default=100, help="Max length of sentence")        
         parser.add_argument("--having_interactions", type=int, default=15, help="num of user interactions")        
@@ -44,21 +45,17 @@ class GatherOptions():
         parser.add_argument('--intra_attn_method', default='dualFC', help="intra attention method")
         parser.add_argument('--inter_attn_method', default='general', help="inter attention method")
 
-        parser.add_argument("--use_pretrain_word", default="Y", 
-                    choices=["Y", "N"], help="Wheather using pretrain embedding" )        
+        parser.add_argument("--use_pretrain_word", default="Y", choices=["Y", "N"], help="Wheather using pretrain embedding")
+        parser.add_argument("--use_sparsity_review", default="N", choices=["Y", "N"], help="Wheather using sparsity reviews")       
 
         parser.add_argument('--selectAttnModel', default='', help="Select model that wanna to show attn weight")
         parser.add_argument("--visulize_attn_epoch", type=int, default=0, help="No. of epoch that you like to show attention weight")
 
-        parser.add_argument("--use_nltk_stopword", default="Y", choices=["Y", "N"], 
-            help="Using NLTK stopword")
+        parser.add_argument("--use_nltk_stopword", default="N", choices=["Y", "N"], help="Using NLTK stopword")
         
-        parser.add_argument("--hybird", default="N", choices=["Y", "N"], 
-            help="hybird model")    
+        parser.add_argument("--hybird", default="N", choices=["Y", "N"], help="hybird model")    
 
-        parser.add_argument("--test_on_traindata", default="N", choices=["Y", "N"], 
-            help="Selecting testing on test/train set")
-            
+        parser.add_argument("--test_on_traindata", default="N", choices=["Y", "N"], help="Selecting testing on test/train set")
 
         self.parser = parser
 
@@ -73,7 +70,7 @@ class GatherOptions():
         if opt.mode == "test":
             self.parser.add_argument("--model_dir", help="path to load model for test(the largest step or use --step to specify)")
             
-        if opt.mode == "train" or opt.mode == "both" or opt.mode == "generation":
+        if opt.mode == "train" or opt.mode == "both":
             os.makedirs(opt.save_dir, exist_ok=True)
             os.makedirs(opt.save_dir + "/Loss", exist_ok=True)
             os.makedirs(opt.save_dir + "/Model", exist_ok=True)

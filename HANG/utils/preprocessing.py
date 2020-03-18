@@ -8,6 +8,7 @@ import itertools
 import time
 import numpy as np
 import tqdm
+import pickle
 from utils.DBconnector import DBConnection
 from nltk.corpus import stopwords
 
@@ -207,132 +208,9 @@ class Preprocess:
         reviewerID_batch = torch.tensor([val for val in this_reviewerID_batch])
 
         return label, asin_batch, reviewerID_batch
-    
-    # def GenerateCandidateBatches(self, CANDIDATE, candidate_id, voc, start_of_reviews=0, num_of_reviews = 5 , batch_size = 5, testing=False):        
-    #     """Only generate one candidate's batch a time"""
-        
-    #     new_training_batches_sentences = list()
-    #     new_training_batches_ratings = list()
-    #     new_training_batches = list()
 
-    #     # for each user numberth reivews
-    #     for review_ctr in range(start_of_reviews, num_of_reviews, 1):
-    #         inp, lengths = self._inputVar(
-    #             CANDIDATE[candidate_id].sentences[review_ctr],
-    #             voc,
-    #             testing)
-
-
-    #         new_training_batches.append(inp)
-        
-    #     return new_training_batches
-
-
-
-    # def add_correspond_GenerateTrainingBatches(self, USERorITEM, candidateObj, voc, net_type = 'item_base', start_of_reviews=0, num_of_reviews = 5 , batch_size = 5, testing=False):
-    #     """
-    #         Create sentences & length encoding
-
-    #         if net_type is user-base, then candidateObj should be itemObj
-    #         elif net_type is item-base, then candidateObj should be userObj
-    #     """
-
-    #     new_training_batches_sentences = list()
-    #     new_training_batches_ratings = list()
-    #     new_training_batches = list()
-    #     new_training_batches_asins = list()
-    #     num_of_batch_group = 0
-        
-
-    #     # for each user numberth reivews
-        
-    #     for review_ctr in range(start_of_reviews, num_of_reviews, 1):
-    #         new_training_batch_sen = dict() # 40 (0~39)
-    #         new_training_batch_rating = dict()
-    #         new_training_batch_asin = dict()
-    #         training_batches = dict()
-
-    #         training__correspond_sen = dict()
-            
-    #         for user_ctr in tqdm.tqdm(range(len(USERorITEM))):
-                
-    #             # Insert group encodeing
-    #             if((user_ctr % batch_size == 0) and user_ctr>0):
-    #                 num_of_batch_group+=1
-                    
-    #                 # encode pre group
-    #                 training_batch = self._batch2TrainData(
-    #                                     voc, 
-    #                                     new_training_batch_sen[num_of_batch_group-1], 
-    #                                     new_training_batch_rating[num_of_batch_group-1],
-    #                                     isSort = False,
-    #                                     normalizeRating = False,
-    #                                     testing=testing
-    #                                     )
-    #                 # training_batches[num_of_batch_group-1].append(training_batch)
-    #                 training_batches[num_of_batch_group-1] = training_batch
-
-    #             this_user_sentence = USERorITEM[user_ctr].sentences[review_ctr]
-    #             this_user_rating = USERorITEM[user_ctr].rating[review_ctr]
-                
-    #             # Using itemObj/userObj to find index
-    #             if(net_type == 'user_base'):
-    #                 # origin user_base : candidate would be product
-    #                 this_user_asin = USERorITEM[user_ctr].this_asin[review_ctr]
-    #                 this_user_asin_index = candidateObj.asin2index[this_user_asin]
-    #             elif(net_type == 'item_base'):
-    #                 # item_base : candidate would be user
-    #                 this_asin_user = USERorITEM[user_ctr].this_reviewerID[review_ctr]
-    #                 this_asin_user_index = candidateObj.reviewerID2index[this_asin_user]
-
-    #                 this_user_sentence = user_tensor2sentences[this_asin_user.item()]
-
-    #                 for u_review_ctr in range(0, 4, 1):
-
-    #                     pass
-
-
-    #             if(num_of_batch_group not in new_training_batch_sen):
-    #                 new_training_batch_sen[num_of_batch_group] = []
-    #                 new_training_batch_rating[num_of_batch_group] = []
-    #                 new_training_batch_asin[num_of_batch_group] = []
-    #                 # training_batches[num_of_batch_group] = []
-
-    #             new_training_batch_sen[num_of_batch_group].append(this_user_sentence)
-    #             new_training_batch_rating[num_of_batch_group].append(this_user_rating)   
-                
-    #             if(net_type == 'user_base'):
-    #                 new_training_batch_asin[num_of_batch_group].append(this_user_asin_index) 
-    #             elif(net_type == 'item_base'):                
-    #                 new_training_batch_asin[num_of_batch_group].append(this_asin_user_index) 
-                
-
-    #             # Insert group encodeing (For Last group)
-    #             if(user_ctr == (len(USERorITEM)-1)):
-    #                 num_of_batch_group+=1
-    #                 # encode pre group
-    #                 training_batch = self._batch2TrainData(
-    #                                     voc, 
-    #                                     new_training_batch_sen[num_of_batch_group-1], 
-    #                                     new_training_batch_rating[num_of_batch_group-1],
-    #                                     isSort = False,
-    #                                     normalizeRating = False,
-    #                                     testing=testing                                    
-    #                                     )
-    #                 # training_batches[num_of_batch_group-1].append(training_batch)
-    #                 training_batches[num_of_batch_group-1] = training_batch            
-
-
-    #         new_training_batches_sentences.append(new_training_batch_sen)
-    #         new_training_batches_ratings.append(new_training_batch_rating)
-    #         new_training_batches.append(training_batches)
-    #         new_training_batches_asins.append(new_training_batch_asin)
-
-    #         num_of_batch_group = 0
-    #     return new_training_batches, new_training_batches_asins    
-
-
-    def GenerateTrainingBatches(self, USERorITEM, candidateObj, voc, net_type = 'item_base', start_of_reviews=0, num_of_reviews = 5 , batch_size = 5, testing=False):
+    def GenerateTrainingBatches(self, USERorITEM, candidateObj, voc, 
+        net_type = 'item_base', start_of_reviews=0, num_of_reviews = 5 , batch_size = 5, testing=False):
         """
             Create sentences & length encoding
 
@@ -425,34 +303,11 @@ class Preprocess:
 
             num_of_batch_group = 0
 
-            print('Unknown word:{}'.format(self.unknown_ctr))
+            # print('Unknown word:{}'.format(self.unknown_ctr))
 
         return new_training_batches, new_training_batches_asins       
 
-    # def GenerateBatchLabelCandidate(self, labels_, asins_, reviewerIDs_, batch_size):
-    #     num_of_batch_group = 0
-    #     batch_labels = dict()
-    #     candidate_asins = dict()
-    #     candidate_reviewerIDs = dict()
-
-    #     batch_labels[num_of_batch_group] = list()
-    #     candidate_asins[num_of_batch_group] = list()
-    #     candidate_reviewerIDs[num_of_batch_group] = list()
-
-    #     for idx in range(len(labels_)):
-    #         if((idx % batch_size == 0) and idx > 0):
-    #             num_of_batch_group+=1
-    #             batch_labels[num_of_batch_group] = list()
-    #             candidate_asins[num_of_batch_group] = list()
-    #             candidate_reviewerIDs[num_of_batch_group] = list()
-            
-    #         batch_labels[num_of_batch_group].append(labels_[idx])
-    #         candidate_asins[num_of_batch_group].append(asins_[idx])
-    #         candidate_reviewerIDs[num_of_batch_group].append(reviewerIDs_[idx])
-
-    #     return batch_labels, candidate_asins, candidate_reviewerIDs
-
-    def GenerateBatchLabelCandidate(self, labels_, asins_, reviewerIDs_, batch_size, CANDIDATE, candidateObj, voc, start_of_reviews=5, num_of_reviews = 1, testing=False, mode=''):
+    def GenerateBatchLabelCandidate(self, labels_, asins_, reviewerIDs_, batch_size, CANDIDATE, candidateObj, voc, start_of_reviews=5, num_of_reviews = 1, testing=False, mode='', net_type='item_base'):
         num_of_batch_group = 0
         batch_labels = dict()
         candidate_asins = dict()
@@ -475,6 +330,7 @@ class Preprocess:
 
         if(mode =='generate'):
             testing_batches, testing_asin_batches = self.GenerateTrainingBatches(CANDIDATE, candidateObj, voc, start_of_reviews=start_of_reviews,
+                net_type=net_type,
                 num_of_reviews = start_of_reviews+num_of_reviews , batch_size = batch_size, testing=testing)
             
             return batch_labels, candidate_asins, candidate_reviewerIDs, testing_batches
@@ -553,7 +409,7 @@ class Preprocess:
         
         return asin, reviewerID
 
-    def get_train_set(self, CANDIDATE, itemObj, userObj, voc, batchsize=32, num_of_reviews=5, num_of_rating=1, net_type='item_base',mode=''):
+    def get_train_set(self, CANDIDATE, itemObj, userObj, voc, batchsize=32, num_of_reviews=5, num_of_rating=1, net_type='item_base', testing=False, mode=''):
         batch_labels = list()
         candidate_asins = list()
         candidate_reviewerIDs = list()
@@ -581,7 +437,9 @@ class Preprocess:
                     CANDIDATE, 
                     candidateObj, 
                     voc,
-                    mode=mode
+                    testing=testing,
+                    mode=mode,
+                    net_type=net_type
                     )
             elif (mode=='generate'):
                 _labels, _asins, _reviewerIDs, _label_sen_batches = self.GenerateBatchLabelCandidate(training_labels, 
@@ -591,7 +449,9 @@ class Preprocess:
                     CANDIDATE, 
                     candidateObj, 
                     voc,
-                    mode=mode
+                    testing=testing,
+                    mode=mode,
+                    net_type=net_type
                     )
                 label_sen_batch = _label_sen_batches   
             
@@ -626,7 +486,13 @@ class Preprocess:
             # encounter a new candidate
             if(last_candidate != res[index][ROW_NAME]):
                 last_candidate = res[index][ROW_NAME]               # record new candidate id
-                CANDIDATE.append(AsinHistory(res[index][ROW_NAME])) # append a object
+
+                if(net_type == 'user_base'):
+                    CANDIDATE.append(ReviewerHistory(res[index][ROW_NAME])) # append a object
+                elif(net_type == 'item_base'):
+                    CANDIDATE.append(AsinHistory(res[index][ROW_NAME])) # append a object
+
+                # CANDIDATE.append(AsinHistory(res[index][ROW_NAME])) # append a object
                 ctr += 1                                            # adding counter
             
             # Dealing with sentences
@@ -652,7 +518,7 @@ class Preprocess:
         else:
             return CANDIDATE, candiate2index
 
-    def load_data(self, sqlfile='', testing=False, table='clothing_', rand_seed=42):
+    def load_data(self, sqlfile='', testing=False, table='clothing_', rand_seed=42, test_on_train_data=False):
         """Load dataset from database"""
 
         print('\nLoading asin/reviewerID from cav file...')
@@ -673,7 +539,11 @@ class Preprocess:
             if(sqlfile!='' and not testing):
                 sql_cmd = file_.read().split(';')[0]
             else:
-                sql_cmd = file_.read().split(';')[1]
+                if(test_on_train_data):
+                    sql_cmd = file_.read().split(';')[1].replace('NOT IN','IN')
+                else:
+                    sql_cmd = file_.read().split(';')[1]
+
 
         # Setup random seed
         sql_cmd = sql_cmd.replace("RAND()", "RAND({})".format(rand_seed))
@@ -705,3 +575,31 @@ class Preprocess:
                     print(msg)
         
         return weights_matrix
+
+    def load_asin2title(self, sqlfile='HANG/SQL/cloth_asin2title.sql')->dict:
+        """Load dataset from database"""
+
+        # Loading SQL cmd from .sql file
+        with open(sqlfile) as file_:
+            sql_cmd = file_.read()
+        
+        print("""####################################\nSQL Command:\n{}\n####################################\n""".format(sql_cmd))
+
+        # Conn. to db & select data
+        conn = DBConnection()
+        res = conn.selection(sql_cmd)
+        conn.close()
+
+        asin2title = dict()
+        for _val in res:
+            asin2title[_val['asin']] = _val['title']
+
+        return asin2title
+    
+    def load_sparsity_reviews(self, fpath, fname):
+        """Method for loading sparsity reviews id."""
+        # reload a file to a variable
+        with open('{}/review_sparsity_{}.pickle'.format(fpath, fname),  'rb') as file:
+            can2sparsity = pickle.load(file)
+        
+        return can2sparsity
