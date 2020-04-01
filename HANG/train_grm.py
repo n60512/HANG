@@ -32,13 +32,19 @@ if(opt.use_pretrain_word == 'Y'):
 
 def _train_test(data_preprocess):
 
-    res, itemObj, userObj = data_preprocess.load_data(sqlfile=opt.sqlfile, testing=False, table= opt.selectTable, rand_seed=opt.train_test_rand_seed)  # for clothing.
+    res, itemObj, userObj = data_preprocess.load_data(
+        sqlfile=opt.sqlfile, 
+        testing=False, 
+        table= opt.selectTable, 
+        rand_seed=opt.train_test_rand_seed
+        )  # for clothing.
 
     # Generate voc & (User or Item) information , CANDIDATE could be USER or ITEM
     voc, CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(
         res, 
         having_interaction=opt.having_interactions, 
-        net_type = opt.net_type)
+        net_type = opt.net_type
+        )
 
     # pre-train words
     if(opt.use_pretrain_word == 'Y'):
@@ -98,7 +104,9 @@ def _train_test(data_preprocess):
     # Generate testing batches
     if(opt.mode == "eval_mse" or opt.mode == "generation" or opt.mode == "train"):        
         
-        review_generation.set_testing_set(test_on_train_data = opt.test_on_traindata)
+        review_generation.set_testing_set(
+            test_on_train_data = opt.test_on_traindata
+            )
 
         # Loading testing data from database
         res, itemObj, userObj = data_preprocess.load_data(
@@ -113,7 +121,8 @@ def _train_test(data_preprocess):
         CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(res, having_interaction=opt.having_interactions, generate_voc=False, 
             net_type = opt.net_type)
 
-        testing_batch_labels, testing_asins, testing_reviewerIDs, testing_label_sentences = data_preprocess.get_train_set(CANDIDATE, 
+        testing_batch_labels, testing_asins, testing_reviewerIDs, testing_label_sentences = data_preprocess.get_train_set(
+            CANDIDATE, 
             itemObj, 
             userObj, 
             voc,
@@ -141,14 +150,27 @@ def _train_test(data_preprocess):
             testing=True
             )
 
-        review_generation.set_testing_batches(testing_batches, testing_external_memorys, 
-            testing_batch_labels, testing_asins, testing_reviewerIDs, testing_label_sentences)
+        review_generation.set_testing_batches(
+            testing_batches, 
+            testing_external_memorys, 
+            testing_batch_labels, 
+            testing_asins, 
+            testing_reviewerIDs, 
+            testing_label_sentences
+            )
     
 
     if(opt.mode == "train" or opt.mode == "both"):
-        review_generation.train_grm(opt.selectTable, isStoreModel=True, WriteTrainLoss=True, store_every = opt.save_model_freq, 
-            use_pretrain_item=False, isCatItemVec=True, ep_to_store=opt.epoch_to_store,
-            pretrain_wordVec=pretrain_wordVec)
+        review_generation.train_grm(
+            opt.selectTable, 
+            isStoreModel=True, 
+            WriteTrainLoss=True, 
+            store_every = opt.save_model_freq, 
+            use_pretrain_item=False, 
+            isCatItemVec=True, 
+            ep_to_store=opt.epoch_to_store,
+            pretrain_wordVec=pretrain_wordVec
+            )
 
 
     # Testing(chose epoch)
@@ -178,8 +200,13 @@ def _train_test(data_preprocess):
 
         # evaluating
         tokens_dict, scores_dict = review_generation.evaluate_generation(
-            IntraGRU, InterGRU, DecoderModel, isCatItemVec=True, 
-            userObj=userObj, itemObj=itemObj, voc=voc
+            IntraGRU, 
+            InterGRU, 
+            DecoderModel, 
+            isCatItemVec=True, 
+            userObj=userObj, 
+            itemObj=itemObj, 
+            voc=voc
             )
 
 

@@ -14,15 +14,26 @@ class RatingRegresstion(train_test_setup):
         training_epoch=100, latent_k=32, batch_size=40, hidden_size=300, clip=50,
         num_of_reviews = 5, 
         intra_method='dualFC', inter_method='dualFC', 
-        learning_rate=0.00001, dropout=0):
+        learning_rate=0.00001, dropout=0,
+        setence_max_len=50):
         
-        super(RatingRegresstion, self).__init__(device, net_type, save_dir, voc, prerocess, training_epoch, latent_k, batch_size, hidden_size, clip, num_of_reviews, intra_method, inter_method, learning_rate, dropout)
+        super(RatingRegresstion, self).__init__(device, net_type, save_dir, voc, prerocess, training_epoch, latent_k, batch_size, hidden_size, clip, num_of_reviews, intra_method, inter_method, learning_rate, dropout, setence_max_len)
         
         self._tesorboard = _Tensorboard(self.save_dir + '/tensorboard')
         self.use_sparsity_review = False
 
         pass
-    
+        
+    def set_training_review_rating(self, training_review_rating, correspond_review_rating):
+        self.training_review_rating = training_review_rating
+        self.training_correspond_review_rating = correspond_review_rating
+        pass
+
+    def set_testing_review_rating(self, testing_review_rating, correspond_review_rating):
+        self.testing_review_rating = testing_review_rating
+        self.testing_correspond_review_rating = correspond_review_rating
+        pass
+
     def set_can2sparsity(self, can2sparsity):
         self.can2sparsity = can2sparsity
         self.use_sparsity_review = True
@@ -36,6 +47,10 @@ class RatingRegresstion(train_test_setup):
         self.testing_reviewerIDs = testing_reviewerIDs
         pass
     
+    def set_testing_correspond_batches(self, testing_correspond_batches):
+        self.testing_correspond_batches = testing_correspond_batches
+        pass
+
     def set_correspond_batches(self, correspond_batches):
         self.correspond_batches = correspond_batches
         pass
@@ -342,7 +357,8 @@ class RatingRegresstion(train_test_setup):
         training_batches, external_memorys, candidate_items, 
         candidate_users, training_batch_labels, 
         correspond_batches,
-        isCatItemVec=False
+        isCatItemVec=False,
+        concat_rating = False
         ):
 
         """ Training each iteraction"""
@@ -400,13 +416,37 @@ class RatingRegresstion(train_test_setup):
                         interInput = torch.cat((interInput, base_net_outputs) , 0) 
                         if(isCatItemVec):
                             interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
+                    
 
+                    if(concat_rating):
+                        this_rating = self.training_review_rating[reviews_ctr][batch_ctr]
+
+                        _encode_rating = self._rating_to_onehot(this_rating)
+                        _encode_rating = torch.tensor(_encode_rating).to(self.device)
+                        _encode_rating = _encode_rating.unsqueeze(0)
+                        pass
+                    else:
+                        inter_intput_rating =None           
+
+
+                    if(reviews_ctr == 0):
+                        interInput = base_net_outputs
+                        if(concat_rating):
+                            inter_intput_rating = _encode_rating
+                    else:
+                        if(concat_rating):
+                            inter_intput_rating = torch.cat(
+                                (inter_intput_rating, _encode_rating) , 0
+                                ) 
+                                    
                 base_net_outputs, intra_hidden, inter_attn_score  = inter_GRU(
                     interInput, 
                     interInput_asin, 
                     current_asins, 
-                    current_reviewerIDs
+                    current_reviewerIDs,
+                    review_rating = inter_intput_rating
                     )
+
 
                 # base_net_outputs = base_net_outputs.squeeze(1)
 
@@ -452,7 +492,37 @@ class RatingRegresstion(train_test_setup):
                         if(isCatItemVec):
                             interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
 
-                correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                    if(concat_rating):
+                        this_rating = self.training_correspond_review_rating[reviews_ctr][batch_ctr]
+                        
+                        _encode_rating = self._rating_to_onehot(this_rating)
+                        _encode_rating = torch.tensor(_encode_rating).to(self.device)
+                        _encode_rating = _encode_rating.unsqueeze(0)
+                        pass
+                    else:
+                        inter_intput_rating =None           
+
+
+                    if(reviews_ctr == 0):
+                        interInput = correspond_net_outputs
+                        if(concat_rating):
+                            inter_intput_rating = _encode_rating
+                    else:
+                        if(concat_rating):
+                            inter_intput_rating = torch.cat(
+                                (inter_intput_rating, _encode_rating) , 0
+                                ) 
+
+
+
+                correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(
+                    interInput, 
+                    interInput_asin, 
+                    current_asins, 
+                    current_reviewerIDs,
+                    review_rating = inter_intput_rating
+                    )
+
                 correspond_net_outputs = correspond_net_outputs.squeeze(1)
                 
 
@@ -498,7 +568,7 @@ class RatingRegresstion(train_test_setup):
         return epoch_loss
 
     def hybird_train(self, select_table, isStoreModel=False, isStoreCheckPts=False, WriteTrainLoss=False, store_every = 2, 
-            use_pretrain_item= False, isCatItemVec= True, pretrain_wordVec=None):
+            use_pretrain_item= False, isCatItemVec= True, pretrain_wordVec=None, concat_rating=False):
         
         asin, reviewerID = self._get_asin_reviewer()
         # Initialize textual embeddings
@@ -506,7 +576,6 @@ class RatingRegresstion(train_test_setup):
             embedding = pretrain_wordVec
         else:
             embedding = nn.Embedding(self.voc.num_words, self.hidden_size)
-
 
         # Initialize asin/reviewer embeddings
         if(use_pretrain_item):
@@ -569,6 +638,7 @@ class RatingRegresstion(train_test_setup):
             dropout=self.dropout, 
             latentK = self.latent_k, 
             isCatItemVec=isCatItemVec , 
+            concat_rating = concat_rating,
             netType=self.net_type, 
             method=self.inter_method
             )
@@ -648,7 +718,8 @@ class RatingRegresstion(train_test_setup):
             n_layers=1, 
             dropout=self.dropout, 
             latentK = self.latent_k, 
-            isCatItemVec=isCatItemVec , 
+            isCatItemVec=isCatItemVec ,
+            concat_rating = concat_rating, 
             netType=self.net_type, 
             method=self.inter_method
             )
@@ -699,7 +770,8 @@ class RatingRegresstion(train_test_setup):
                 self.training_batches, self.external_memorys, self.candidate_items, self.candidate_users, 
                 self.training_batch_labels, 
                 self.correspond_batches,
-                isCatItemVec=isCatItemVec
+                isCatItemVec=isCatItemVec,
+                concat_rating = concat_rating
                 )                
 
             # Adjust optimizer group
@@ -722,7 +794,8 @@ class RatingRegresstion(train_test_setup):
                 self.testing_batches, self.testing_external_memorys, self.testing_batch_labels, 
                 self.testing_asins, self.testing_reviewerIDs,
                 self.testing_correspond_batches, 
-                isCatItemVec=isCatItemVec
+                isCatItemVec=isCatItemVec,
+                concat_rating = concat_rating
                 )
             print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
 
@@ -748,7 +821,8 @@ class RatingRegresstion(train_test_setup):
     def _hybird_evaluate(self, IntraGRU, InterGRU, correspond_intra_GRU, correspond_inter_GRU, MFC,
         training_batches, training_asin_batches, validate_batch_labels, validate_asins, validate_reviewerIDs, 
         correspond_batches,
-        isCatItemVec=False, isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
+        isCatItemVec=False, concat_rating=False,
+        isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
         
         group_loss = 0
         AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
@@ -783,9 +857,37 @@ class RatingRegresstion(train_test_setup):
                         else:
                             interInput = torch.cat((interInput, outputs) , 0) 
                             interInput_asin = torch.cat((interInput_asin, this_asins) , 0)
+
+
+                        if(concat_rating):
+                            this_rating = self.testing_review_rating[reviews_ctr][batch_ctr]
+
+                            _encode_rating = self._rating_to_onehot(this_rating)
+                            _encode_rating = torch.tensor(_encode_rating).to(self.device)
+                            _encode_rating = _encode_rating.unsqueeze(0)
+                            pass
+                        else:
+                            inter_intput_rating =None           
+
+
+                        if(reviews_ctr == 0):
+                            # interInput = base_net_outputs
+                            if(concat_rating):
+                                inter_intput_rating = _encode_rating
+                        else:
+                            if(concat_rating):
+                                inter_intput_rating = torch.cat(
+                                    (inter_intput_rating, _encode_rating) , 0
+                                    ) 
                                 
                 with torch.no_grad():
-                    outputs, intra_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                    outputs, intra_hidden, inter_attn_score  = InterGRU(
+                        interInput, 
+                        interInput_asin, 
+                        current_asins, 
+                        current_reviewerIDs,
+                        review_rating = inter_intput_rating
+                        )
                     outputs = outputs.squeeze(1)
 
 
@@ -814,8 +916,36 @@ class RatingRegresstion(train_test_setup):
                             interInput = torch.cat((interInput, correspond_net_outputs) , 0) 
                             interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
 
+                        if(concat_rating):
+                            this_rating = self.testing_correspond_review_rating[reviews_ctr][batch_ctr]
+
+                            _encode_rating = self._rating_to_onehot(this_rating)
+                            _encode_rating = torch.tensor(_encode_rating).to(self.device)
+                            _encode_rating = _encode_rating.unsqueeze(0)
+                            pass
+                        else:
+                            inter_intput_rating =None           
+
+
+                        if(reviews_ctr == 0):
+                            # interInput = base_net_outputs
+                            if(concat_rating):
+                                inter_intput_rating = _encode_rating
+                        else:
+                            if(concat_rating):
+                                inter_intput_rating = torch.cat(
+                                    (inter_intput_rating, _encode_rating) , 0
+                                    ) 
+
+
                 with torch.no_grad():
-                    correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                    correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(
+                        interInput, 
+                        interInput_asin, 
+                        current_asins, 
+                        current_reviewerIDs,
+                        review_rating = inter_intput_rating
+                        )
                     correspond_net_outputs = correspond_net_outputs.squeeze(1)
 
 
@@ -840,6 +970,15 @@ class RatingRegresstion(train_test_setup):
 
         return RMSE
 
-    def set_testing_correspond_batches(self, testing_correspond_batches):
-        self.testing_correspond_batches = testing_correspond_batches
-        pass
+    def _rating_to_onehot(self, rating, rating_dim=5):
+        # Initial onehot table
+        onehot_table = [0 for _ in range(rating_dim)]
+        rating = [int(val-1) for val in rating]
+        
+        _encode_rating = list()
+        for val in rating:
+            current_onehot = onehot_table.copy()    # copy from init.
+            current_onehot[val] = 1.0               # set rating as onehot
+            _encode_rating.append(current_onehot)
+
+        return _encode_rating

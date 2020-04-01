@@ -140,3 +140,5 @@ HANG/utils/DBconnector.py
 HANG/log/origin/*/*/Model/*
 
 HANG/data/pretrain_itembase_model/*
+HANG/log/origin/*/tensorboard/*
+runs/Mar13_14-18-58_kdd2080ti/events.out.tfevents.1584080338.kdd2080ti.26370.0

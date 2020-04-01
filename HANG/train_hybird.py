@@ -74,13 +74,14 @@ def _train_HANN_model(data_preprocess):
 
     # Generate `training set batches`
     # training_batches contain {sentences batch, rating batch, length batch}
-    training_batches, training_asin_batches = data_preprocess.GenerateTrainingBatches(
+    training_batches, training_asin_batches, training_review_rating = data_preprocess.GenerateTrainingBatches(
         ITEM, 
         candidateObj, 
         voc, 
         net_type = base_model_net_type, 
         num_of_reviews=opt.num_of_reviews, 
-        batch_size=opt.batchsize
+        batch_size=opt.batchsize,
+        get_rating_batch = True
         )
     
 
@@ -117,12 +118,13 @@ def _train_HANN_model(data_preprocess):
         ITEM_CONSUMER.append(USER[user_index])   
 
     # Generate correspond net batches
-    correspond_batches, correspond_asin_batches = data_preprocess.GenerateTrainingBatches(
+    correspond_batches, correspond_asin_batches, correspond_review_rating = data_preprocess.GenerateTrainingBatches(
         ITEM_CONSUMER, itemObj, voc, 
         net_type = correspond_model_net_type,
         num_of_reviews= num_of_reviews_unet, 
         batch_size=opt.batchsize,
-        testing=True
+        testing=True,
+        get_rating_batch = True
         )
 
     # Start to train model by `rating regression`
@@ -141,6 +143,7 @@ def _train_HANN_model(data_preprocess):
     rating_regresstion.set_correspond_batches(correspond_batches)           # this method for hybird only
     rating_regresstion.set_correspond_num_of_reviews(num_of_reviews_unet)   # this method for hybird only
     rating_regresstion.set_correspond_external_memorys(correspond_asin_batches)    # this method for hybird only
+    rating_regresstion.set_training_review_rating(training_review_rating, correspond_review_rating)
 
     """Creating testing batches"""
     # Loading testing data from database
@@ -157,7 +160,8 @@ def _train_HANN_model(data_preprocess):
         net_type = opt.net_type
         )
 
-    testing_batch_labels, testing_asins, testing_reviewerIDs, _ = data_preprocess.get_train_set(CANDIDATE, 
+    testing_batch_labels, testing_asins, testing_reviewerIDs, _ = data_preprocess.get_train_set(
+        CANDIDATE, 
         itemObj, 
         userObj, 
         voc,
@@ -167,17 +171,23 @@ def _train_HANN_model(data_preprocess):
         )
 
     # Generate testing batches
-    testing_batches, testing_external_memorys = data_preprocess.GenerateTrainingBatches(
+    testing_batches, testing_external_memorys, testing_review_rating = data_preprocess.GenerateTrainingBatches(
         CANDIDATE, userObj, voc, net_type = opt.net_type,
         num_of_reviews=opt.num_of_reviews, batch_size=opt.batchsize, 
-        testing=True
+        testing=True,
+        get_rating_batch = True
         )
 
 
 
     if(opt.hybird == 'Y'):
 
-        user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+        # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+        if(opt.sqlfile_fill_user==''):
+            user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+        else:
+            user_base_sql = opt.sqlfile_fill_user
+
         res, itemObj, userObj = data_preprocess.load_data(
             sqlfile = user_base_sql, 
             testing = True, 
@@ -207,9 +217,11 @@ def _train_HANN_model(data_preprocess):
 
             # loading sparsity review
             can2sparsity = data_preprocess.load_sparsity_reviews(
-                'HANG/data/review_sparsity', 
-                'test'
-                )
+                # 'HANG/data/review_sparsity', 
+                # 'test_3rd'
+                # 'HANG/data/review_sparsity/test_3rd'
+                opt.sparsity_pickle
+                )       
             # setup can2sparsity
             rating_regresstion.set_can2sparsity(can2sparsity)
 
@@ -224,14 +236,15 @@ def _train_HANN_model(data_preprocess):
                         ITEM_CONSUMER[_index].sentences[_num_of_review] = ''
             
         # Generate `training correspond set batches`
-        correspond_batches, correspond_asin_batches = data_preprocess.GenerateTrainingBatches(
+        correspond_batches, correspond_asin_batches, correspond_review_rating = data_preprocess.GenerateTrainingBatches(
             ITEM_CONSUMER, 
             itemObj, 
             voc, 
             net_type = 'user_base', 
             num_of_reviews= 4, 
             batch_size=opt.batchsize,
-            testing=True
+            testing=True,
+            get_rating_batch = True
             )
         
         rating_regresstion.set_testing_correspond_batches(correspond_batches)
@@ -247,6 +260,14 @@ def _train_HANN_model(data_preprocess):
         testing_reviewerIDs
     )
 
+    rating_regresstion.set_testing_review_rating(
+        testing_review_rating, 
+        correspond_review_rating
+        )
+
+    if(opt.concat_review_rating == 'Y'):
+        concat_rating = True
+
     """Start training"""
     if(opt.mode == 'both' or opt.mode == 'train'):
         rating_regresstion.hybird_train(
@@ -256,6 +277,7 @@ def _train_HANN_model(data_preprocess):
             store_every = opt.save_model_freq, 
             use_pretrain_item=False, 
             isCatItemVec=not True, 
+            concat_rating=concat_rating,
             pretrain_wordVec=pretrain_wordVec
             )
 
@@ -263,7 +285,7 @@ def _train_HANN_model(data_preprocess):
     """Start testing"""
     if(opt.mode == "test"):
 
-        for Epoch in range(0, opt.epoch, opt.save_model_freq):
+        for Epoch in range(opt.start_epoch, opt.epoch, opt.save_model_freq):
             # Loading IntraGRU
             IntraGRU = list()
             for idx in range(opt.num_of_reviews):
@@ -288,7 +310,9 @@ def _train_HANN_model(data_preprocess):
                 IntraGRU, InterGRU, correspond_IntraGRU, correspond_InterGRU, MFC,
                 testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs,
                 correspond_batches, 
-                isCatItemVec=not True, visulize_attn_epoch=opt.epoch
+                isCatItemVec= not True, 
+                concat_rating= True,
+                visulize_attn_epoch=opt.epoch
                 )
 
             print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))

@@ -210,7 +210,8 @@ class Preprocess:
         return label, asin_batch, reviewerID_batch
 
     def GenerateTrainingBatches(self, USERorITEM, candidateObj, voc, 
-        net_type = 'item_base', start_of_reviews=0, num_of_reviews = 5 , batch_size = 5, testing=False):
+        net_type = 'item_base', start_of_reviews=0, num_of_reviews = 5 , 
+        batch_size = 5, testing=False, get_rating_batch=False):
         """
             Create sentences & length encoding
 
@@ -304,8 +305,10 @@ class Preprocess:
             num_of_batch_group = 0
 
             # print('Unknown word:{}'.format(self.unknown_ctr))
-
-        return new_training_batches, new_training_batches_asins       
+        if get_rating_batch:
+            return new_training_batches, new_training_batches_asins, new_training_batches_ratings
+        else:
+            return new_training_batches, new_training_batches_asins       
 
     def GenerateBatchLabelCandidate(self, labels_, asins_, reviewerIDs_, batch_size, CANDIDATE, candidateObj, voc, start_of_reviews=5, num_of_reviews = 1, testing=False, mode='', net_type='item_base'):
         num_of_batch_group = 0
@@ -417,7 +420,8 @@ class Preprocess:
 
         for idx in range(0, num_of_rating, 1):
             # Generate train set
-            training_labels, training_asins, training_reviewerIDs = self._generate_label_encoding(CANDIDATE, 
+            training_labels, training_asins, training_reviewerIDs = self._generate_label_encoding(
+                CANDIDATE, 
                 num_of_reviews+idx, 1, 
                 itemObj, 
                 userObj
@@ -430,7 +434,8 @@ class Preprocess:
 
             # Train set to batch data
             if(mode==''):
-                _labels, _asins, _reviewerIDs = self.GenerateBatchLabelCandidate(training_labels, 
+                _labels, _asins, _reviewerIDs = self.GenerateBatchLabelCandidate(
+                    training_labels, 
                     training_asins, 
                     training_reviewerIDs, 
                     batchsize,
@@ -497,7 +502,10 @@ class Preprocess:
             
             # Dealing with sentences
             if(res[index]['rank'] < having_interaction + 1):
-                current_sentence = self._normalize_string(res[index]['reviewText'])
+                if(res[index]['reviewText'] == None):
+                    current_sentence = self._normalize_string('')
+                else:
+                    current_sentence = self._normalize_string(res[index]['reviewText'])
                 
                 if(generate_voc):
                     myVoc.addSentence(current_sentence) # myVoc add word 
@@ -596,10 +604,12 @@ class Preprocess:
 
         return asin2title
     
-    def load_sparsity_reviews(self, fpath, fname):
+    def load_sparsity_reviews(self, fpath):
         """Method for loading sparsity reviews id."""
         # reload a file to a variable
-        with open('{}/review_sparsity_{}.pickle'.format(fpath, fname),  'rb') as file:
-            can2sparsity = pickle.load(file)
-        
+        # with open('{}/review_sparsity_{}.pickle'.format(fpath, fname),  'rb') as file:
+        #     can2sparsity = pickle.load(file)
+        with open(fpath,  'rb') as file:
+            can2sparsity = pickle.load(file)        
+
         return can2sparsity

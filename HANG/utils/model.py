@@ -178,6 +178,8 @@ class HANN(nn.Module):
 
         # Consider attention score
         weighting_outputs = inter_attn_score * outputs
+        context_vector = weighting_outputs
+
         outputs_sum = torch.sum(weighting_outputs , dim = 0)  
 
         # Concat. interaction vector & GRU output
@@ -198,7 +200,7 @@ class HANN(nn.Module):
         sigmoid_outputs = sigmoid_outputs.squeeze(0)
 
         # Return output and final hidden state
-        return sigmoid_outputs, hidden, inter_attn_score
+        return sigmoid_outputs, hidden, inter_attn_score, context_vector
 
 class DecoderGRU(nn.Module):
     def __init__(self, embedding, hidden_size, output_size, n_layers=1, dropout=0.1):
@@ -219,7 +221,19 @@ class DecoderGRU(nn.Module):
 
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, input_step, last_hidden):
+        self.attn = nn.Linear(self.hidden_size, self.hidden_size)
+        self.linear_beta = torch.nn.Linear(self.hidden_size, 1)          
+
+    def CalculateAttn(self, hidden, encoder_output):
+        
+        energy = self.attn(encoder_output)
+        weighting_score = torch.sum(hidden * energy, dim=2)
+        weighting_score = weighting_score.t()
+        attn_weights = torch.softmax(weighting_score, dim=1).unsqueeze(1)
+
+        return attn_weights
+
+    def forward(self, input_step, last_hidden, context_vector):
         # Note: we run this one step (word) at a time
         # Get embedding of current input word
         embedded = self.embedding(input_step)
@@ -228,8 +242,14 @@ class DecoderGRU(nn.Module):
         # Forward through unidirectional GRU
         rnn_output, hidden = self.gru(embedded, last_hidden)
 
+        attn_weights = self.CalculateAttn(rnn_output, context_vector)
+        
+        context = attn_weights.bmm(context_vector.transpose(0, 1))
+        stop = 1
+
+
         # Concatenate weighted context vector and GRU output using Luong eq. 5
-        rnn_output = rnn_output.squeeze(0)
+        rnn_output = weighting_outputs.squeeze(0)
         rnn_output = torch.tanh(rnn_output)
 
         # Predict next word using Luong eq. 6
@@ -243,7 +263,8 @@ class DecoderGRU(nn.Module):
         return output, hidden
 
 class HANN_i(nn.Module):
-    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, isCatItemVec=False, netType='item_base', method='dualFC'):
+    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, 
+        isCatItemVec=False, concat_rating = False, netType='item_base', method='dualFC'):
         super(HANN_i, self).__init__()
         
         self.method = method
@@ -256,6 +277,7 @@ class HANN_i(nn.Module):
         self.userEmbedding = userEmbedding
 
         self.isCatItemVec = isCatItemVec
+        self.concat_rating = concat_rating
         self.netType = netType
 
         if self.method == 'general':
@@ -276,6 +298,9 @@ class HANN_i(nn.Module):
             # GRU_InputSize = hidden_size + latentK   # word dim. + item dim.
         else:
             GRU_InputSize = hidden_size
+
+        if(self.concat_rating):
+            GRU_InputSize = GRU_InputSize+5
 
         self.inter_review = nn.GRU(GRU_InputSize, hidden_size, n_layers,
                           dropout=(0 if n_layers == 1 else dropout))
@@ -310,7 +335,7 @@ class HANN_i(nn.Module):
 
         return inter_attn_score
 
-    def forward(self, intra_outputs, this_candidate_index, item_index, user_index, hidden=None):
+    def forward(self, intra_outputs, this_candidate_index, item_index, user_index, hidden=None, review_rating=None):
         
         if(self.isCatItemVec):
             # Concat. intra output && candidate feature
@@ -322,6 +347,9 @@ class HANN_i(nn.Module):
                 inter_input = torch.cat((intra_outputs, user_feature), 2)            
         else:
             inter_input = intra_outputs
+
+        if(self.concat_rating):
+            inter_input = torch.cat((inter_input, review_rating), 2)
 
         # Forward pass through GRU
         outputs, hidden = self.inter_review(inter_input, hidden)
@@ -340,7 +368,8 @@ class HANN_i(nn.Module):
         return outputs_sum, hidden, inter_attn_score
 
 class HANN_u(nn.Module):
-    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, isCatItemVec=False, netType='item_base', method='dualFC'):
+    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, 
+        isCatItemVec=False, concat_rating = False, netType='item_base', method='dualFC'):
         super(HANN_u, self).__init__()
         
         self.method = method
@@ -353,6 +382,7 @@ class HANN_u(nn.Module):
         self.userEmbedding = userEmbedding
 
         self.isCatItemVec = isCatItemVec
+        self.concat_rating = concat_rating
         self.netType = netType
 
         if self.method == 'general':
@@ -373,6 +403,9 @@ class HANN_u(nn.Module):
             # GRU_InputSize = hidden_size + latentK   # word dim. + item dim.
         else:
             GRU_InputSize = hidden_size
+
+        if(self.concat_rating):
+            GRU_InputSize = GRU_InputSize+5            
 
         self.inter_review = nn.GRU(GRU_InputSize, hidden_size, n_layers,
                           dropout=(0 if n_layers == 1 else dropout))
@@ -407,7 +440,7 @@ class HANN_u(nn.Module):
 
         return inter_attn_score
 
-    def forward(self, intra_outputs, this_candidate_index, item_index, user_index, hidden=None):
+    def forward(self, intra_outputs, this_candidate_index, item_index, user_index, hidden=None, review_rating=None):
         
         if(self.isCatItemVec):
             # Concat. intra output && candidate feature
@@ -419,6 +452,9 @@ class HANN_u(nn.Module):
                 inter_input = torch.cat((intra_outputs, user_feature), 2)            
         else:
             inter_input = intra_outputs
+
+        if(self.concat_rating):
+            inter_input = torch.cat((inter_input, review_rating), 2)            
 
         # Forward pass through GRU
         outputs, hidden = self.inter_review(inter_input, hidden)
@@ -465,8 +501,8 @@ class MultiFC(nn.Module):
         rep_cat = torch.cat((item_rep, user_rep), dim=1)
         rep_cat = torch.cat((rep_cat, elm_w_product_inter), dim=1)
         
-        # # dropout
-        # outputs_cat = self.dropout(outputs_cat)
+        # dropout
+        rep_cat = self.dropout(rep_cat)
 
         # hidden_size to 2*K dimension
         outputs_ = self.fc_doubleK(rep_cat) 

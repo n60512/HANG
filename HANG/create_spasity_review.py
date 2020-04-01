@@ -12,7 +12,7 @@ def wpickle(fpath, fname, _dict):
     pickle.dump(_dict, _file)
     _file.close()    
 
-def _store(data_preprocess, opt, testing=False):
+def _store(data_preprocess, opt, testing=False, select_review=-1, write_can2item=False):
 
     item_net_sql = "HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql"
     base_model_net_type = 'item_base'
@@ -68,17 +68,35 @@ def _store(data_preprocess, opt, testing=False):
 
     ITEM_CONSUMER
 
-    drop_count = 2
-    can2sparsity = dict()
-    for index, _candidate in enumerate(ITEM_CONSUMER):
-        can2sparsity[_candidate.reviewerID] = [1,1,1,1]
+    if(select_review == -1):
+        # random chose
+        drop_count = 2
+        can2sparsity = dict()
+        for index, _candidate in enumerate(ITEM_CONSUMER):
+            can2sparsity[_candidate.reviewerID] = [1,1,1,1]
 
-        for val in range(random.randint(0,drop_count)):
-            select = random.randint(0,3) 
-            can2sparsity[_candidate.reviewerID][select] = 0
+            for val in range(random.randint(0,drop_count)):
+                select = random.randint(0,3) 
+                can2sparsity[_candidate.reviewerID][select] = 0
+
+    else:
+        # select target review
+        can2sparsity = dict()
+        for index, _candidate in enumerate(ITEM_CONSUMER):
+            can2sparsity[_candidate.reviewerID] = [1,1,1,1]
+            can2sparsity[_candidate.reviewerID][select_review] = 0
     
+
+    # can2item = [_CONS.this_asin for _CONS in ITEM_CONSUMER]
+    can2item = dict()
+    for index, _candidate in enumerate(ITEM_CONSUMER):
+        can2item[_candidate.reviewerID] = _candidate.this_asin
+        
+    if (write_can2item):
+        wpickle(opt.pk_fpath, 'can2item', can2item)
+
     wpickle(opt.pk_fpath, opt.pk_fname, can2sparsity)
-    stop = 1
+    
     pass
 
 def _load(fpath, fname):
@@ -107,7 +125,8 @@ if __name__ == "__main__":
     parser.add_argument("--having_interactions", type=int, default=15, help="num of user interactions")        
     parser.add_argument('--num_of_reviews', type=int, default=4, help="number of every user's reviews")
     parser.add_argument('--pk_fpath', default='HANG/data/review_sparsity')
-    parser.add_argument('--pk_fname', default='test')
+    parser.add_argument('--pk_fname', default='test_3rd')
+    parser.add_argument("--select_review", type=int, default=-1, help="")        
 
     opt = parser.parse_args()
 
@@ -118,6 +137,12 @@ if __name__ == "__main__":
         use_nltk_stopword=False
     )
     if(opt.mode == 'save'):
-        _store(data_preprocess, opt, testing=True)
+        _store(
+            data_preprocess, 
+            opt, 
+            testing=True, 
+            select_review=opt.select_review,
+            write_can2item=not True
+            )
     elif(opt.mode == 'load'):
         _load(opt.pk_fpath, opt.pk_fname)        

@@ -1,0 +1,27 @@
+python HANG/train_hybird.py \
+--mode test \
+--save_model_freq 2 \
+--epoch 80 \
+--batchsize 80 \
+--hidden 300 \
+--lr 0.000005 \
+--net_type item_base \
+--intra_attn_method dualFC \
+--inter_attn_method general \
+--sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql \
+--train_test_rand_seed 42 \
+--having_interactions 6 \
+--num_of_rating 1 \
+--num_of_reviews 5 \
+--num_of_correspond_reviews 4 \
+--use_pretrain_word Y \
+--use_sparsity_review Y \
+--use_nltk_stopword N \
+--concat_review_rating Y \
+--dropout 0.3 \
+--setence_max_len 50 \
+--clip 50 \
+--hybird Y \
+--sparsity_pickle HANG/data/review_sparsity/review_sparsity_test_1st.pickle \
+--minor_path Sparsity_1st_TestingLoss.txt \
+--save_dir HANG/log/origin/20200326_09_59 

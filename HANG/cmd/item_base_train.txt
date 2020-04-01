@@ -1,0 +1,4 @@
+python HANG --mode train --save_model_freq 4 --epoch 120 --batchsize 80 --hidden 300 --lr 0.000008 --net_type item_base --intra_attn_method dualFC --inter_attn_method general --sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw_max30.sql --train_test_rand_seed 42 --having_interactions 6 --num_of_rating 1 --num_of_reviews 5 --use_pretrain_word Y --use_nltk_stopword N --dropout 0.3 --setence_max_len 30 --clip 50 
+
+
+python HANG --mode train --save_model_freq 2 --epoch 60 --batchsize 80 --hidden 300 --lr 0.000008 --net_type item_base --intra_attn_method dualFC --inter_attn_method general --sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql --train_test_rand_seed 42 --having_interactions 6 --num_of_rating 1 --num_of_reviews 5 --use_pretrain_word Y --use_nltk_stopword N --dropout 0.3 --setence_max_len 50 --clip 50 

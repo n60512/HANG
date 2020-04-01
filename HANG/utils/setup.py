@@ -3,7 +3,7 @@ class train_test_setup():
         training_epoch=100, latent_k=32, batch_size=40, hidden_size=300, clip=50,
         num_of_reviews = 5, 
         intra_method='dualFC', inter_method='dualFC', 
-        learning_rate=0.00001, dropout=0):
+        learning_rate=0.00001, dropout=0, setence_max_len=50):
 
         self.device = device
         self.net_type = net_type
@@ -22,6 +22,7 @@ class train_test_setup():
         self.learning_rate = learning_rate
         self.dropout = dropout
         self.batch_size = batch_size
+        self.setence_max_len = setence_max_len
     
         pass
 
