@@ -392,7 +392,7 @@ class ReviewGeneration(train_test_setup):
 
                                 
                 with torch.no_grad():
-                    outputs, inter_hidden, inter_attn_score  = InterGRU(
+                    outputs, inter_hidden, inter_attn_score, context_vector  = InterGRU(
                         interInput, 
                         interInput_asin, 
                         current_asins, 
@@ -443,7 +443,7 @@ class ReviewGeneration(train_test_setup):
                 """
                 for t in range(max_target_len):
                     decoder_output, decoder_hidden = DecoderModel(
-                        decoder_input, decoder_hidden
+                        decoder_input, decoder_hidden, context_vector
                     )
                     # No teacher forcing: next input is decoder's own current output
                     decoder_scores_, topi = decoder_output.topk(1)
@@ -481,7 +481,7 @@ class ReviewGeneration(train_test_setup):
                         pass
 
                     generate_text = str.format(
-                        "=========================\nUserid & asin:{},{}\ntitle:{}\nPredict:{:10.3f}\nRating:{:10.3f}\nGenerate: {}".format(
+                        "=========================\nUserid & asin:{},{}\ntitle:{}\nPredict:{:10.3f}\nRating:{:10.3f}\nGenerate: {}\n".format(
                             userObj.index2reviewerID[user_.item()], 
                             itemObj.index2asin[asin_.item()],
                             product_title,
@@ -566,7 +566,7 @@ class ReviewGeneration(train_test_setup):
 
                                     
                     with torch.no_grad():
-                        outputs, intra_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                        outputs, intra_hidden, inter_attn_score, context_vector  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
                         outputs = outputs.squeeze(1)
      
                 

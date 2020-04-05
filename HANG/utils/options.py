@@ -8,8 +8,12 @@ class GatherOptions():
     def __init__(self):
         parser = argparse.ArgumentParser(description="train or test HANG")
         
-        parser.add_argument("--mode", default="train", choices=["train", "test", 'both', 'showAttn', 'generation', 'eval_mse'],
-                            help="train or test the model" )
+        parser.add_argument(
+            "--mode", 
+            default="train", 
+            choices=["train", "test", 'both', 'showAttn', 'generation', 'eval_mse', 'attention'],
+            help="train or test the model" 
+            )
         
         current_time = datetime.datetime.now()
         parser.add_argument("--save_dir", default=("HANG/log/origin/{:%Y%m%d_%H_%M}".format(current_time)), help="path for saving model")
@@ -18,6 +22,8 @@ class GatherOptions():
         
         parser.add_argument('--sqlfile', default='', help="loacl sql cmd file")
         parser.add_argument('--sqlfile_fill_user', default='', help="loacl sql cmd file")
+        parser.add_argument('--num_of_generative', default='', help="chose the number that wanna fill into sparsity")
+
         parser.add_argument("--train_test_rand_seed", type=int, default=42, help="rand seed for data seleting")        
 
         parser.add_argument('--save_model_freq', type=int, default=1, help="frequency of saving model")
@@ -83,7 +89,7 @@ class GatherOptions():
             with open(self.config_path, 'w') as f:
                 json.dump(self.opt.__dict__, f)
         
-        if opt.mode == "showAttn":
+        if opt.mode == "showAttn" or opt.mode == "attention":
             os.makedirs(opt.save_dir + "/VisualizeAttn/epoch_{}".format(opt.visulize_attn_epoch), exist_ok=True)
 
         if opt.mode == "generation":
@@ -91,7 +97,6 @@ class GatherOptions():
             if opt.test_on_traindata == "Y":
                 os.makedirs(opt.save_dir + "/GenerateSentences/on_train", exist_ok=True)
             elif opt.test_on_traindata == "N":
-                os.makedirs(opt.save_dir + "/GenerateSentences/on_test", exist_ok=True)        
-
+                os.makedirs(opt.save_dir + "/GenerateSentences/on_test", exist_ok=True)
 
         return opt

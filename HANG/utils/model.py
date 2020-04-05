@@ -216,19 +216,21 @@ class DecoderGRU(nn.Module):
         self.embedding = embedding
         self.embedding_dropout = nn.Dropout(dropout)
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
-        self.concat = nn.Linear(hidden_size * 2, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
 
         self.logsoftmax = nn.LogSoftmax(dim=1)
 
         self.attn = nn.Linear(self.hidden_size, self.hidden_size)
-        self.linear_beta = torch.nn.Linear(self.hidden_size, 1)          
+        self.concat = nn.Linear(hidden_size * 2, hidden_size)
 
     def CalculateAttn(self, hidden, encoder_output):
         
+        # Linear layer to calculate weighting score
         energy = self.attn(encoder_output)
         weighting_score = torch.sum(hidden * energy, dim=2)
         weighting_score = weighting_score.t()
+        
+        # Activation function
         attn_weights = torch.softmax(weighting_score, dim=1).unsqueeze(1)
 
         return attn_weights
@@ -241,21 +243,19 @@ class DecoderGRU(nn.Module):
         
         # Forward through unidirectional GRU
         rnn_output, hidden = self.gru(embedded, last_hidden)
+        rnn_output = rnn_output.squeeze(0)
 
         attn_weights = self.CalculateAttn(rnn_output, context_vector)
         
         context = attn_weights.bmm(context_vector.transpose(0, 1))
-        stop = 1
+        context = context.squeeze(1)
 
+        # Concat. rnn output & context inf.
+        concat_input = torch.cat((rnn_output, context), 1)
+        concat_output = torch.tanh(self.concat(concat_input))
 
-        # Concatenate weighted context vector and GRU output using Luong eq. 5
-        rnn_output = weighting_outputs.squeeze(0)
-        rnn_output = torch.tanh(rnn_output)
-
-        # Predict next word using Luong eq. 6
-        output = self.out(rnn_output)
-        # output = F.softmax(output, dim=1)
-
+        output = self.out(concat_output)
+        
         # log softmax
         output = self.logsoftmax(output)
 

@@ -526,7 +526,7 @@ class Preprocess:
         else:
             return CANDIDATE, candiate2index
 
-    def load_data(self, sqlfile='', testing=False, table='clothing_', rand_seed=42, test_on_train_data=False):
+    def load_data(self, sqlfile='', testing=False, table='clothing_', rand_seed=42, test_on_train_data=False, num_of_generative=None):
         """Load dataset from database"""
 
         print('\nLoading asin/reviewerID from cav file...')
@@ -554,7 +554,17 @@ class Preprocess:
 
 
         # Setup random seed
-        sql_cmd = sql_cmd.replace("RAND()", "RAND({})".format(rand_seed))
+        sql_cmd = sql_cmd.replace(
+            "RAND()", 
+            "RAND({})".format(rand_seed)
+            )
+
+        # Setup generative table
+        if(num_of_generative!=None):
+            sql_cmd = sql_cmd.replace(
+                "&swap&", 
+                "{}".format(num_of_generative)
+                )
         
         print("""####################################\nSQL Command:\n{}\n####################################\n""".format(sql_cmd))
 

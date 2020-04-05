@@ -513,8 +513,6 @@ class RatingRegresstion(train_test_setup):
                                 (inter_intput_rating, _encode_rating) , 0
                                 ) 
 
-
-
                 correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(
                     interInput, 
                     interInput_asin, 
@@ -524,7 +522,6 @@ class RatingRegresstion(train_test_setup):
                     )
 
                 correspond_net_outputs = correspond_net_outputs.squeeze(1)
-                
 
                 """
                 Forward pass through final prediction net model
@@ -822,7 +819,7 @@ class RatingRegresstion(train_test_setup):
         training_batches, training_asin_batches, validate_batch_labels, validate_asins, validate_reviewerIDs, 
         correspond_batches,
         isCatItemVec=False, concat_rating=False,
-        isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
+        isWriteAttn=False, candidateObj=None, visulize_attn_epoch=0):
         
         group_loss = 0
         AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
@@ -878,7 +875,26 @@ class RatingRegresstion(train_test_setup):
                             if(concat_rating):
                                 inter_intput_rating = torch.cat(
                                     (inter_intput_rating, _encode_rating) , 0
-                                    ) 
+                                    )
+
+                    # # Writing Intra-attention weight to .html file
+                    # if(isWriteAttn):
+                        
+                    #     """Only considerate user attention"""
+                    #     current_candidates = current_reviewerIDs
+                        
+                    #     for index_ , candidateObj_ in enumerate(current_candidates):
+
+                    #         intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
+                    #         word_indexes = input_variable[:,index_].tolist()
+                            
+                    #         sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
+                    #         AttnVisualize.createHTML(
+                    #             sentence, 
+                    #             weights, 
+                    #             reviews_ctr, 
+                    #             fname='{}@{}'.format( userObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
+                    #             )                           
                                 
                 with torch.no_grad():
                     outputs, intra_hidden, inter_attn_score  = InterGRU(
@@ -937,6 +953,23 @@ class RatingRegresstion(train_test_setup):
                                     (inter_intput_rating, _encode_rating) , 0
                                     ) 
 
+                    # Writing Intra-attention weight to .html file
+                    if(isWriteAttn):
+                        
+                        """Only considerate user attention"""
+                        current_candidates = correspond_current_reviewerIDs
+                        
+                        for index_ , candidateObj_ in enumerate(current_candidates):
+
+                            intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
+                            word_indexes = input_variable[:,index_].tolist()
+                            sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
+                            AttnVisualize.createHTML(
+                                sentence, 
+                                weights, 
+                                reviews_ctr, 
+                                fname='{}@{}'.format( candidateObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
+                                )       
 
                 with torch.no_grad():
                     correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(

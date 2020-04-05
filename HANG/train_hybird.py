@@ -88,7 +88,7 @@ def _train_HANN_model(data_preprocess):
     """
     Generate user-net training data.
     """
-    num_of_reviews_unet = 4
+    num_of_reviews_unet = opt.num_of_correspond_reviews
 
     user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
     res, itemObj, userObj = data_preprocess.load_data(
@@ -182,17 +182,19 @@ def _train_HANN_model(data_preprocess):
 
     if(opt.hybird == 'Y'):
 
-        # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+        """Select testing set (`normal` or `GENERATIVE`)"""
         if(opt.sqlfile_fill_user==''):
             user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
         else:
+            opt.num_of_generative
             user_base_sql = opt.sqlfile_fill_user
 
         res, itemObj, userObj = data_preprocess.load_data(
             sqlfile = user_base_sql, 
             testing = True, 
             table = opt.selectTable, 
-            rand_seed = opt.train_test_rand_seed
+            rand_seed = opt.train_test_rand_seed,
+            num_of_generative=opt.num_of_generative
             )  # for clothing.
 
         # Generate voc & (User or Item) information , CANDIDATE could be USER or ITEM
@@ -212,14 +214,11 @@ def _train_HANN_model(data_preprocess):
 
             ITEM_CONSUMER.append(USER[user_index])
 
-        """Enable useing sparsity review"""
+        """Enable useing sparsity review (training set `OFF`)"""
+        """Using this when testing on sparsity reviews"""
         if(opt.use_sparsity_review == 'Y'):
-
             # loading sparsity review
             can2sparsity = data_preprocess.load_sparsity_reviews(
-                # 'HANG/data/review_sparsity', 
-                # 'test_3rd'
-                # 'HANG/data/review_sparsity/test_3rd'
                 opt.sparsity_pickle
                 )       
             # setup can2sparsity
@@ -241,7 +240,7 @@ def _train_HANN_model(data_preprocess):
             itemObj, 
             voc, 
             net_type = 'user_base', 
-            num_of_reviews= 4, 
+            num_of_reviews= opt.num_of_correspond_reviews, 
             batch_size=opt.batchsize,
             testing=True,
             get_rating_batch = True
@@ -265,6 +264,7 @@ def _train_HANN_model(data_preprocess):
         correspond_review_rating
         )
 
+    # Concat. rating embedding
     if(opt.concat_review_rating == 'Y'):
         concat_rating = True
 
@@ -323,6 +323,41 @@ def _train_HANN_model(data_preprocess):
             else:
                 with open(R'{}/Loss/{}'.format(opt.save_dir, opt.minor_path),'a') as file:
                     file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))
+    
+    if(opt.mode == "attention"):
+
+        # Loading IntraGRU
+        IntraGRU = list()
+        for idx in range(opt.num_of_reviews):
+            model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, opt.visulize_attn_epoch))
+            IntraGRU.append(model)
+
+        # Loading correspond IntraGRU
+        correspond_IntraGRU = list()
+        for idx in range(opt.num_of_correspond_reviews):
+            model = torch.load(R'{}/Model/correspond_IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, opt.visulize_attn_epoch))
+            correspond_IntraGRU.append(model)
+
+        # Loading InterGRU
+        InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, opt.visulize_attn_epoch))
+        correspond_InterGRU = torch.load(R'{}/Model/correspond_InterGRU_epoch{}'.format(opt.save_dir, opt.visulize_attn_epoch))
+        
+        # Loading MFC
+        MFC = torch.load(R'{}/Model/MFC_epoch{}'.format(opt.save_dir, opt.visulize_attn_epoch))
+
+        # Evaluating hybird model
+        RMSE = rating_regresstion._hybird_evaluate(
+            IntraGRU, InterGRU, correspond_IntraGRU, correspond_InterGRU, MFC,
+            testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs,
+            correspond_batches, 
+            isCatItemVec= not True, 
+            concat_rating= True,
+            visulize_attn_epoch=opt.visulize_attn_epoch,
+            isWriteAttn=True,
+            candidateObj=userObj
+            )
+
+        print('Epoch:{}\tMSE:{}\t'.format(opt.visulize_attn_epoch, RMSE))
 
 if __name__ == "__main__":
 

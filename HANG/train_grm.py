@@ -209,7 +209,6 @@ def _train_test(data_preprocess):
             voc=voc
             )
 
-
     # Evaluation
     if(opt.mode == "eval_mse"):
 
@@ -222,8 +221,6 @@ def _train_test(data_preprocess):
 
             # Loading InterGRU
             InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, Epoch))        
-                
-
 
             # evaluating
             RMSE = review_generation.evaluate_mse(
