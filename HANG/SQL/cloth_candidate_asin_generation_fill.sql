@@ -22,5 +22,5 @@ WHERE reviewerID IN (SELECT reviewerID FROM candidate_set)
 AND clothing_review.ID = clothing_interaction6_rm_sw.ID 
 ORDER BY reviewerID,unixReviewTime ASC 
 ;
-SELECT * FROM clothing_userbase_42_fill_1;
+SELECT * FROM clothing_userbase_42_fill_&swap&;
 ;
