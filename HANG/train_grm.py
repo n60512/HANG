@@ -232,13 +232,15 @@ def _train_test(data_preprocess):
             with open(R'{}/Loss/TestingLoss.txt'.format(opt.save_dir),'a') as file:
                 file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))   
 
-
     pass
 
 
+def run():
+    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len, use_nltk_stopword=opt.use_nltk_stopword)
+    _train_test(data_preprocess)
+    pass
+
 if __name__ == "__main__":
-
-
     data_preprocess = Preprocess(setence_max_len=opt.setence_max_len, use_nltk_stopword=opt.use_nltk_stopword)
     _train_test(data_preprocess)
 

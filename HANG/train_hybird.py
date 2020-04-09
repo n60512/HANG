@@ -19,7 +19,7 @@ USE_CUDA = torch.cuda.is_available()
 device = torch.device("cuda" if USE_CUDA else "cpu")
 opt = options.GatherOptions().parse()
 
-# If use pre-train word vector , load .vec
+"""Loading pretrain fasttext embedding"""
 if(opt.use_pretrain_word == 'Y'):
     filename = 'HANG/data/{}festtext_subEmb.vec'.format(opt.selectTable)
     pretrain_words = KeyedVectors.load_word2vec_format(filename, binary=False)
@@ -186,8 +186,7 @@ def _train_HANN_model(data_preprocess):
         if(opt.sqlfile_fill_user==''):
             user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
         else:
-            opt.num_of_generative
-            user_base_sql = opt.sqlfile_fill_user
+            user_base_sql = opt.sqlfile_fill_user   # select the generative table
 
         res, itemObj, userObj = data_preprocess.load_data(
             sqlfile = user_base_sql, 
@@ -195,9 +194,9 @@ def _train_HANN_model(data_preprocess):
             table = opt.selectTable, 
             rand_seed = opt.train_test_rand_seed,
             num_of_generative=opt.num_of_generative
-            )  # for clothing.
+            )  
 
-        # Generate voc & (User or Item) information , CANDIDATE could be USER or ITEM
+        # Generate USER information 
         USER, uid2index = data_preprocess.generate_candidate_voc(
             res, 
             having_interaction = opt.having_interactions, 
@@ -209,7 +208,6 @@ def _train_HANN_model(data_preprocess):
         ITEM_CONSUMER = list()
         for _item in CANDIDATE:
             candidate_uid = _item.this_reviewerID[5]
-            # u_index = userObj.reviewerID2index[candidate_uid]
             user_index = uid2index[candidate_uid]
 
             ITEM_CONSUMER.append(USER[user_index])

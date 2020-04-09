@@ -1,12 +1,11 @@
 python HANG/train_grm.py \
---mode train \
+--mode generation \
 --save_model_freq 2 \
---epoch_to_store 30 \
---epoch 60 \
+--epoch 58 \
 --batchsize 80 \
---lr 0.00001 \
+--lr 0.0001 \
 --net_type item_base \
---decoder_learning_ratio 30.0 \
+--decoder_learning_ratio 1.0 \
 --inter_attn_method general \
 --sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql \
 --train_test_rand_seed 42 \
@@ -18,4 +17,5 @@ python HANG/train_grm.py \
 --dropout 0 \
 --setence_max_len 50 \
 --clip 50 \
---test_on_traindata N 
+--test_on_traindata N \
+--save_dir HANG/log/origin/20200408_11_15_grm_deAttn

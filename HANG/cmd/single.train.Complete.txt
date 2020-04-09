@@ -1,12 +1,12 @@
-python HANG/train_grm.py \
+python HANG/train_single.py \
 --mode train \
 --save_model_freq 2 \
---epoch_to_store 30 \
---epoch 60 \
+--epoch 80 \
 --batchsize 80 \
---lr 0.00001 \
+--hidden 300 \
+--lr 0.000007 \
 --net_type item_base \
---decoder_learning_ratio 30.0 \
+--intra_attn_method dualFC \
 --inter_attn_method general \
 --sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql \
 --train_test_rand_seed 42 \
@@ -15,7 +15,7 @@ python HANG/train_grm.py \
 --num_of_reviews 5 \
 --use_pretrain_word Y \
 --use_nltk_stopword N \
---dropout 0 \
+--concat_review_rating Y \
+--dropout 0.3 \
 --setence_max_len 50 \
---clip 50 \
---test_on_traindata N 
+--clip 50 

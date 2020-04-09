@@ -65,7 +65,7 @@ class RatingRegresstion(train_test_setup):
 
     def _train_iteration(self, IntraGRU, InterGRU, IntraGRU_optimizer, InterGRU_optimizer, 
         training_batches, external_memorys, candidate_items, candidate_users, training_batch_labels, 
-        isCatItemVec=False):
+        isCatItemVec=False,concat_rating=False):
         """ Training each iteraction"""
 
         # Initialize this epoch loss
@@ -103,17 +103,41 @@ class RatingRegresstion(train_test_setup):
                     else:
                         interInput_asin = None
 
+                    if(concat_rating):
+                        this_rating = self.training_review_rating[reviews_ctr][batch_ctr]
+                        
+                        _encode_rating = self._rating_to_onehot(this_rating)
+                        _encode_rating = torch.tensor(_encode_rating).to(self.device)
+                        _encode_rating = _encode_rating.unsqueeze(0)
+                        pass
+                    else:
+                        inter_intput_rating =None       
+
                     if(reviews_ctr == 0):
                         interInput = outputs
+                        if(concat_rating):
+                            inter_intput_rating = _encode_rating                        
                         if(isCatItemVec):
                             interInput_asin = this_asins
                     else:
                         interInput = torch.cat((interInput, outputs) , 0) 
+                        
                         if(isCatItemVec):
-                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
+                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0)                         
+
+                        if(concat_rating):
+                            inter_intput_rating = torch.cat(
+                                (inter_intput_rating, _encode_rating) , 0
+                                ) 
 
 
-                outputs, intra_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                outputs, intra_hidden, inter_attn_score, context_vector  = InterGRU(
+                    interInput, 
+                    interInput_asin, 
+                    current_asins, 
+                    current_reviewerIDs,
+                    review_rating = inter_intput_rating
+                    )
                 outputs = outputs.squeeze(1)
 
 
@@ -143,7 +167,7 @@ class RatingRegresstion(train_test_setup):
         return epoch_loss
 
     def train(self, select_table, isStoreModel=False, isStoreCheckPts=False, WriteTrainLoss=False, store_every = 2, 
-            use_pretrain_item= False, isCatItemVec= True, pretrain_wordVec=None):
+            use_pretrain_item= False, isCatItemVec=False, concat_rating=False, pretrain_wordVec=None):
         
         asin, reviewerID = self._get_asin_reviewer()
         # Initialize textual embeddings
@@ -188,16 +212,21 @@ class RatingRegresstion(train_test_setup):
         
         # Initialize InterGRU models
         InterGRU = HANN(self.hidden_size, embedding, asin_embedding, reviewerID_embedding,
-                n_layers=1, dropout=self.dropout, latentK = self.latent_k, isCatItemVec=isCatItemVec , 
-                netType=self.net_type, method=self.inter_method)
+                n_layers=1, dropout=self.dropout, latentK = self.latent_k, 
+                isCatItemVec=isCatItemVec , concat_rating=concat_rating,
+                netType=self.net_type, method=self.inter_method
+                )
 
         # Use appropriate device
         InterGRU = InterGRU.to(self.device)
         InterGRU.train()
 
         # Initialize IntraGRU optimizers    
-        InterGRU_optimizer = optim.AdamW(InterGRU.parameters(), 
-                lr=self.learning_rate, weight_decay=0.001)
+        InterGRU_optimizer = optim.AdamW(
+            InterGRU.parameters(), 
+            lr=self.learning_rate, 
+            weight_decay=0.001
+            )
 
         # Assuming optimizer has two groups.
         inter_scheduler = optim.lr_scheduler.StepLR(InterGRU_optimizer, 
@@ -209,16 +238,17 @@ class RatingRegresstion(train_test_setup):
             # Run a training iteration with batch
             group_loss = self._train_iteration(IntraGRU, InterGRU, IntraGRU_optimizer, InterGRU_optimizer, 
                 self.training_batches, self.external_memorys, self.candidate_items, self.candidate_users, self.training_batch_labels, 
-                isCatItemVec=isCatItemVec)
+                isCatItemVec=isCatItemVec, concat_rating=concat_rating)
 
+            stop = 1
 
             RMSE = self.evaluate(
                 IntraGRU, 
                 InterGRU, 
                 isWriteAttn=False,
                 isCatItemVec=isCatItemVec, 
+                concat_rating=concat_rating
                 )
-
 
             inter_scheduler.step()
             for idx in range(self.num_of_reviews):
@@ -254,14 +284,11 @@ class RatingRegresstion(train_test_setup):
                 with open(R'{}/Loss/TestingLoss.txt'.format(self.save_dir),'a') as file:
                     file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE)) 
 
-
-
         pass
 
-    def evaluate(self, IntraGRU, InterGRU, isCatItemVec=False, isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
+    def evaluate(self, IntraGRU, InterGRU, isCatItemVec=False, concat_rating=False, isWriteAttn=False, userObj=None, visulize_attn_epoch=0):
         
         group_loss = 0
-        # Voutput = visulizeOutput.WriteSentenceHeatmap(opt.save_dir, opt.num_of_reviews)
         AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
 
         for batch_ctr in range(len(self.testing_batches[0])): #how many batches
@@ -277,22 +304,49 @@ class RatingRegresstion(train_test_setup):
                     current_asins = torch.tensor(self.testing_asins[idx][batch_ctr]).to(self.device)
                     current_reviewerIDs = torch.tensor(self.testing_reviewerIDs[idx][batch_ctr]).to(self.device)
             
-                    # Concat. asin feature
-                    this_asins = self.testing_external_memorys[reviews_ctr][batch_ctr]
-                    this_asins = torch.tensor([val for val in this_asins]).to(self.device)
-                    this_asins = this_asins.unsqueeze(0)
+                    if(isCatItemVec):
+                        # Concat. asin feature
+                        this_asins = self.testing_external_memorys[reviews_ctr][batch_ctr]
+                        this_asins = torch.tensor([val for val in this_asins]).to(self.device)
+                        this_asins = this_asins.unsqueeze(0)
+                    else:
+                        interInput_asin = None
+
+                    if(concat_rating):
+                        this_rating = self.testing_review_rating[reviews_ctr][batch_ctr]
+                        
+                        _encode_rating = self._rating_to_onehot(this_rating)
+                        _encode_rating = torch.tensor(_encode_rating).to(self.device)
+                        _encode_rating = _encode_rating.unsqueeze(0)
+                        pass
+                    else:
+                        inter_intput_rating =None
 
                     with torch.no_grad():
-                        outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](input_variable, lengths, 
-                            current_asins, current_reviewerIDs)
+                        outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](
+                            input_variable, 
+                            lengths, 
+                            current_asins, 
+                            current_reviewerIDs
+                            )
                         outputs = outputs.unsqueeze(0)
 
                         if(reviews_ctr == 0):
                             interInput = outputs
-                            interInput_asin = this_asins
+                            if(concat_rating):
+                                inter_intput_rating = _encode_rating                        
+                            if(isCatItemVec):
+                                interInput_asin = this_asins
                         else:
                             interInput = torch.cat((interInput, outputs) , 0) 
-                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
+                            
+                            if(isCatItemVec):
+                                interInput_asin = torch.cat((interInput_asin, this_asins) , 0)                         
+
+                            if(concat_rating):
+                                inter_intput_rating = torch.cat(
+                                    (inter_intput_rating, _encode_rating) , 0
+                                    ) 
 
                     # Writing Intra-attention weight to .html file
                     if(isWriteAttn):
@@ -315,7 +369,13 @@ class RatingRegresstion(train_test_setup):
                                 )
                                 
                 with torch.no_grad():
-                    outputs, intra_hidden, inter_attn_score  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                    outputs, intra_hidden, inter_attn_score, context_vector  = InterGRU(
+                        interInput, 
+                        interInput_asin, 
+                        current_asins, 
+                        current_reviewerIDs,
+                        review_rating = inter_intput_rating
+                        )
                     outputs = outputs.squeeze(1)
 
                 # Writing Inter-attention weight to .txt file

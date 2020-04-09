@@ -223,7 +223,8 @@
             "request": "launch",
             "program": "${file}",
             "console": "externalTerminal",
-            "args": ["--mode", "both",
+            "args": [
+                    "--mode", "both",
                     "--save_model_freq", "2",
                     "--epoch", "80",
                     "--batchsize", "40",
@@ -443,33 +444,6 @@
                 "--save_dir", "HANG/log/origin/20200404_16_44",                
                 ]
         },           
-        // {
-        //     "name": "Python: HANG(GRM) (bs 40)",
-        //     "type": "python",
-        //     "request": "launch",
-        //     "program": "${file}",
-        //     "console": "externalTerminal",
-        //     "args": ["--mode", "train",
-        //         "--save_model_freq", "2",
-        //         "--epoch_to_store", "30",
-        //         "--epoch", "60",
-        //         "--lr", "0.00001",
-        //         "--net_type", "item_base",
-        //         "--decoder_learning_ratio", "30.0",
-        //         "--inter_attn_method", "general",
-        //         "--sqlfile", "HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql",
-        //         "--train_test_rand_seed", "42",
-        //         "--having_interactions", "6",
-        //         "--num_of_rating", "1",
-        //         "--num_of_reviews", "5",
-        //         "--use_pretrain_word", "Y",
-        //         "--use_nltk_stopword", "N",
-        //         "--dropout", "0",
-        //         "--setence_max_len", "50",
-        //         "--clip", "50",
-        //         "--test_on_traindata", "N",
-        //     ]
-        // },  
         {
             "name": "Python: HANG(GRM) (bs 80)",
             "type": "python",
@@ -500,13 +474,14 @@
             ]
         },          
         {
-            "name": "Python: HANG(GRM) (test generation)",
+            "name": "Python: HANG(GRM) (generation) (Complete data)",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "externalTerminal",
-            "args": ["--mode", "generation",
-                "--save_model_freq", "3",
+            "args": [
+                "--mode", "generation",
+                "--save_model_freq", "2",
                 "--epoch", "58",
                 "--batchsize", "80",
                 "--lr", "0.0001",
@@ -524,7 +499,7 @@
                 "--setence_max_len", "50",
                 "--clip", "50",
                 "--test_on_traindata", "N",
-                "--save_dir", "HANG/log/origin/20200401_22_26",
+                "--save_dir", "HANG/log/origin/20200408_11_15_grm_deAttn",
             ]
         },  
         {

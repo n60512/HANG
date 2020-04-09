@@ -120,7 +120,12 @@ class ReviewGeneration(train_test_setup):
                             interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
 
 
-                outputs, inter_hidden, inter_attn_score, context_vector  = InterGRU(interInput, interInput_asin, current_asins, current_reviewerIDs)
+                outputs, inter_hidden, inter_attn_score, context_vector  = InterGRU(
+                    interInput, 
+                    interInput_asin, 
+                    current_asins, 
+                    current_reviewerIDs
+                    )
                 outputs = outputs.squeeze(1)
 
 
@@ -133,8 +138,7 @@ class ReviewGeneration(train_test_setup):
 
                 # HANN loss of this epoch
                 hann_epoch_loss += hann_loss
-                
-                
+
 
                 """
                 Runing Decoder
@@ -153,7 +157,11 @@ class ReviewGeneration(train_test_setup):
                 # Set initial decoder hidden state to the inter_hidden's final hidden state
                 criterion = nn.NLLLoss()
                 decoder_loss = 0
+
+                """NEXT STEP : CONCAT. RATING"""
                 decoder_hidden = inter_hidden
+
+                use_attn = True
 
                 # Determine if we are using teacher forcing this iteration
                 use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
@@ -162,7 +170,7 @@ class ReviewGeneration(train_test_setup):
                 if use_teacher_forcing:
                     for t in range(max_target_len):
                         decoder_output, decoder_hidden = DecoderModel(
-                            decoder_input, decoder_hidden, context_vector
+                            decoder_input, decoder_hidden, context_vector, use_attn = use_attn
                         )
                         # Teacher forcing: next input is current target
                         decoder_input = target_variable[t].view(1, -1)  # get the row(word) of sentences
@@ -173,7 +181,7 @@ class ReviewGeneration(train_test_setup):
                 else:
                     for t in range(max_target_len):
                         decoder_output, decoder_hidden = DecoderModel(
-                            decoder_input, decoder_hidden
+                            decoder_input, decoder_hidden, context_vector, use_attn = use_attn
                         )
                         # No teacher forcing: next input is decoder's own current output
                         _, topi = decoder_output.topk(1)
@@ -290,8 +298,7 @@ class ReviewGeneration(train_test_setup):
 
         # Initialize DecoderGRU models and optimizers
         DecoderModel = DecoderGRU(embedding, self.hidden_size, self.voc.num_words, n_layers=1, dropout=self.dropout)
-        print(DecoderModel)
-        print(InterGRU)
+
         # Use appropriate device
         DecoderModel = DecoderModel.to(self.device)
         DecoderModel.train()
@@ -305,7 +312,8 @@ class ReviewGeneration(train_test_setup):
 
         for Epoch in range(self.training_epoch):
             # Run a training iteration with batch
-            hann_group_loss, decoder_group_loss = self._train_iteration_grm(IntraGRU, InterGRU, DecoderModel, IntraGRU_optimizer, InterGRU_optimizer, DecoderModel_optimizer,
+            hann_group_loss, decoder_group_loss = self._train_iteration_grm(
+                IntraGRU, InterGRU, DecoderModel, IntraGRU_optimizer, InterGRU_optimizer, DecoderModel_optimizer,
                 self.training_batches, self.external_memorys, self.candidate_items, self.candidate_users, self.training_batch_labels, self.label_sentences,
                 isCatItemVec=isCatItemVec)
 
@@ -349,12 +357,17 @@ class ReviewGeneration(train_test_setup):
         isCatItemVec=False, isWriteAttn=False, userObj=None, itemObj=None, voc=None,
         calculate_nll=False,
         write_origin=False,
-        write_insert_sql=False
+        write_insert_sql=False,
+        candidateObj=None,
+        visulize_attn_epoch = 0
         ):
         
         tokens_dict = dict()
         scores_dict = dict()
         group_loss = 0
+
+        if(isWriteAttn):
+            AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
 
         for batch_ctr in tqdm.tqdm(range(len(self.testing_batches[0]))): #how many batches
             for idx in range(len(self.testing_batch_labels)):
@@ -369,10 +382,10 @@ class ReviewGeneration(train_test_setup):
                     current_asins = torch.tensor(self.testing_asins[idx][batch_ctr]).to(self.device)
                     current_reviewerIDs = torch.tensor(self.testing_reviewerIDs[idx][batch_ctr]).to(self.device)
             
-                    # Concat. asin feature
-                    this_asins = self.testing_external_memorys[reviews_ctr][batch_ctr]
-                    this_asins = torch.tensor([val for val in this_asins]).to(self.device)
-                    this_asins = this_asins.unsqueeze(0)
+                    # Concat. external_memorys feature
+                    this_reviewerIDs = self.testing_external_memorys[reviews_ctr][batch_ctr]
+                    this_reviewerIDs = torch.tensor([val for val in this_reviewerIDs]).to(self.device)
+                    this_reviewerIDs = this_reviewerIDs.unsqueeze(0)
 
                     with torch.no_grad():
                         outputs, intra_hidden, intra_attn_score = IntraGRU[reviews_ctr](
@@ -385,16 +398,16 @@ class ReviewGeneration(train_test_setup):
 
                         if(reviews_ctr == 0):
                             interInput = outputs
-                            interInput_asin = this_asins
+                            interInput_reviewerIDs = this_reviewerIDs
                         else:
                             interInput = torch.cat((interInput, outputs) , 0) 
-                            interInput_asin = torch.cat((interInput_asin, this_asins) , 0) 
+                            interInput_reviewerIDs = torch.cat((interInput_reviewerIDs, this_reviewerIDs) , 0) 
 
                                 
                 with torch.no_grad():
                     outputs, inter_hidden, inter_attn_score, context_vector  = InterGRU(
                         interInput, 
-                        interInput_asin, 
+                        interInput_reviewerIDs, 
                         current_asins, 
                         current_reviewerIDs
                         )
@@ -411,6 +424,27 @@ class ReviewGeneration(train_test_setup):
                 loss = torch.sqrt(loss)
                 group_loss += loss
 
+
+
+                # # Writing Intra-attention weight to .html file
+                # if(isWriteAttn):
+                    
+                #     """Only considerate user attention"""
+                #     current_candidates = current_reviewerIDs
+                    
+                #     for index_ , candidateObj_ in enumerate(current_candidates):
+
+                #         intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
+                #         word_indexes = input_variable[:,index_].tolist()
+                #         sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
+                #         AttnVisualize.createHTML(
+                #             sentence, 
+                #             weights, 
+                #             reviews_ctr, 
+                #             fname='{}@{}'.format( candidateObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
+                #             )   
+
+
                 """
                 Greedy Search Strategy Decoder
                 """
@@ -420,6 +454,7 @@ class ReviewGeneration(train_test_setup):
 
                 # Set initial decoder hidden state to the inter_hidden's final hidden state
                 decoder_hidden = inter_hidden
+                use_attn = True
 
                 if(calculate_nll):
                     # Initial nll loss
@@ -443,7 +478,7 @@ class ReviewGeneration(train_test_setup):
                 """
                 for t in range(max_target_len):
                     decoder_output, decoder_hidden = DecoderModel(
-                        decoder_input, decoder_hidden, context_vector
+                        decoder_input, decoder_hidden, context_vector, use_attn=use_attn
                     )
                     # No teacher forcing: next input is decoder's own current output
                     decoder_scores_, topi = decoder_output.topk(1)
@@ -466,6 +501,7 @@ class ReviewGeneration(train_test_setup):
                 Decode user review from search result.
                 """
                 for index_ , user_ in enumerate(current_reviewerIDs):
+                    
                     asin_ = current_asins[index_]
 
                     current_user_tokens = all_tokens[:,index_].tolist()
@@ -480,16 +516,33 @@ class ReviewGeneration(train_test_setup):
                         product_title = 'None'
                         pass
 
+
+                    # Show user attention
+                    if(use_attn):
+                        inter_attn_score_ = inter_attn_score.squeeze(2).t()
+                        this_user_attn = inter_attn_score_[index_]
+                        this_user_attn = [str(val.item()) for val in this_user_attn]
+                        attn_text = ' ,'.join(this_user_attn)                    
+                    else:
+                        attn_text = None
+
+                    this_asin_input_reviewer = interInput_reviewerIDs.t()[index_]
+                    input_reviewer = [userObj.index2reviewerID[val.item()] for val in this_asin_input_reviewer]                        
+
                     generate_text = str.format(
-                        "=========================\nUserid & asin:{},{}\ntitle:{}\nPredict:{:10.3f}\nRating:{:10.3f}\nGenerate: {}\n".format(
-                            userObj.index2reviewerID[user_.item()], 
-                            itemObj.index2asin[asin_.item()],
-                            product_title,
-                            predict_rating[index_].item(),
-                            current_rating_labels[index_].item(),
-                            ' '.join(decoded_words)
-                            )
-                        )
+f"""
+=========================
+Userid & asin:{userObj.index2reviewerID[user_.item()]},{itemObj.index2asin[asin_.item()]}
+title:{product_title}
+pre. consumer:{' ,'.join(input_reviewer)}
+Inter attn:{attn_text}
+Predict:{predict_rating[index_].item()}
+Rating:{current_rating_labels[index_].item()}
+Generate: {' '.join(decoded_words)}
+"""
+                    )
+
+
                     
                     if (write_origin):
                         current_user_sen = target_variable[:,index_].tolist()

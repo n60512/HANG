@@ -86,7 +86,8 @@ class IntraReviewGRU(nn.Module):
         return intra_outputs, hidden, intra_attn_score
 
 class HANN(nn.Module):
-    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, isCatItemVec=False, netType='item_base', method='dualFC'):
+    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, 
+        isCatItemVec=False, netType='item_base', method='dualFC'):
         super(HANN, self).__init__()
         
         self.method = method
@@ -235,7 +236,7 @@ class DecoderGRU(nn.Module):
 
         return attn_weights
 
-    def forward(self, input_step, last_hidden, context_vector):
+    def forward(self, input_step, last_hidden, context_vector, use_attn=True):
         # Note: we run this one step (word) at a time
         # Get embedding of current input word
         embedded = self.embedding(input_step)
@@ -245,16 +246,20 @@ class DecoderGRU(nn.Module):
         rnn_output, hidden = self.gru(embedded, last_hidden)
         rnn_output = rnn_output.squeeze(0)
 
-        attn_weights = self.CalculateAttn(rnn_output, context_vector)
-        
-        context = attn_weights.bmm(context_vector.transpose(0, 1))
-        context = context.squeeze(1)
+        if(use_attn):
+            attn_weights = self.CalculateAttn(rnn_output, context_vector)
+            
+            context = attn_weights.bmm(context_vector.transpose(0, 1))
+            context = context.squeeze(1)
 
-        # Concat. rnn output & context inf.
-        concat_input = torch.cat((rnn_output, context), 1)
-        concat_output = torch.tanh(self.concat(concat_input))
+            # Concat. rnn output & context inf.
+            concat_input = torch.cat((rnn_output, context), 1)
+            concat_output = torch.tanh(self.concat(concat_input))
 
-        output = self.out(concat_output)
+            output = self.out(concat_output)
+        else:
+            rnn_output = torch.tanh(rnn_output)
+            output = self.out(rnn_output)
         
         # log softmax
         output = self.logsoftmax(output)
@@ -472,8 +477,6 @@ class HANN_u(nn.Module):
 
         return outputs_sum, hidden, inter_attn_score
 
-
-
 class MultiFC(nn.Module):
     def __init__(self, hidden_size, itemEmbedding, userEmbedding, dropout=0, latentK = 64):
         super(MultiFC, self).__init__()
@@ -485,7 +488,6 @@ class MultiFC(nn.Module):
         self.itemEmbedding = itemEmbedding
         self.userEmbedding = userEmbedding
 
-                          
         self.dropout = nn.Dropout(dropout)
         
         self.fc_doubleK = nn.Linear(hidden_size*3 , self.latentK*2)
@@ -517,3 +519,60 @@ class MultiFC(nn.Module):
 
         # Return output and final hidden state
         return sigmoid_outputs
+
+
+class nrt_rating_predictor(nn.Module):
+    def __init__(self, hidden_size, itemEmbedding, userEmbedding):
+        
+        self.itemEmbedding = itemEmbedding
+        self.userEmbedding = userEmbedding
+
+        self.linear = nn.Linear(hidden_size , hidden_size)
+        self.out = nn.Linear(hidden_size, 1)
+
+        pass
+    def forward(self, item_index, user_index):
+
+        # Calculate element-wise product
+        elm_w_product = self.itemEmbedding(item_index) * self.userEmbedding(user_index)
+        output = self.linear(elm_w_product)
+        output = self.out(output)
+
+        return output
+
+class nrt_decoder(nn.Module):
+    def __init__(self, hidden_size, itemEmbedding, userEmbedding, n_layers=1, dropout=0):
+        
+        self.itemEmbedding = itemEmbedding
+        self.userEmbedding = userEmbedding
+        
+        self.weight_user = nn.Linear(hidden_size, hidden_size)
+        self.weight_item = nn.Linear(hidden_size, hidden_size)
+        self.weight_rate = nn.Linear(5, hidden_size)
+
+        self.gru = nn.GRU(
+            hidden_size, 
+            hidden_size, 
+            n_layers, 
+            dropout=(0 if n_layers == 1 else dropout)
+            )
+
+
+        self.linear = nn.Linear(hidden_size , hidden_size)
+        self.out = nn.Linear(hidden_size, 1)
+
+        pass
+    def forward(self, input_step, item_index, user_index, rating):
+        
+        # last_hidden = torch.tanh(
+        #     self.weight_user(self.userEmbedding(user_index)) + 
+        #     self.weight_item(self.itemEmbedding(item_index)) +
+        #     self.weight_rate(self.weight_rate) 
+        # )
+
+        embedded = self.embedding(input_step)
+        embedded = self.embedding_dropout(embedded)
+
+        rnn_output, hidden = self.gru(embedded, last_hidden)
+
+        return output
