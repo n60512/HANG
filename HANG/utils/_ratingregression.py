@@ -63,6 +63,9 @@ class RatingRegresstion(train_test_setup):
         self.correspond_num_of_reviews = num_of_reviews
         pass
 
+    def set_sparsity(self, num_of_review):
+        self._sparsity_review = num_of_review
+
     def _train_iteration(self, IntraGRU, InterGRU, IntraGRU_optimizer, InterGRU_optimizer, 
         training_batches, external_memorys, candidate_items, candidate_users, training_batch_labels, 
         isCatItemVec=False,concat_rating=False):
@@ -113,6 +116,13 @@ class RatingRegresstion(train_test_setup):
                     else:
                         inter_intput_rating =None       
 
+                    
+                    # if(self.use_sparsity_review and reviews_ctr == self._sparsity_review):
+                    #     outputs = torch.randn((1, 80, 44504) , device=self.device)
+                    #     pass
+
+
+
                     if(reviews_ctr == 0):
                         interInput = outputs
                         if(concat_rating):
@@ -135,8 +145,8 @@ class RatingRegresstion(train_test_setup):
                     interInput, 
                     interInput_asin, 
                     current_asins, 
-                    current_reviewerIDs,
-                    review_rating = inter_intput_rating
+                    current_reviewerIDs
+                    # review_rating = inter_intput_rating
                     )
                 outputs = outputs.squeeze(1)
 
@@ -213,7 +223,7 @@ class RatingRegresstion(train_test_setup):
         # Initialize InterGRU models
         InterGRU = HANN(self.hidden_size, embedding, asin_embedding, reviewerID_embedding,
                 n_layers=1, dropout=self.dropout, latentK = self.latent_k, 
-                isCatItemVec=isCatItemVec , concat_rating=concat_rating,
+                isCatItemVec=isCatItemVec ,
                 netType=self.net_type, method=self.inter_method
                 )
 
@@ -373,8 +383,8 @@ class RatingRegresstion(train_test_setup):
                         interInput, 
                         interInput_asin, 
                         current_asins, 
-                        current_reviewerIDs,
-                        review_rating = inter_intput_rating
+                        current_reviewerIDs
+                        # review_rating = inter_intput_rating
                         )
                     outputs = outputs.squeeze(1)
 

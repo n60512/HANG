@@ -56,12 +56,11 @@ class GatherOptions():
 
         parser.add_argument("--use_pretrain_word", default="Y", choices=["Y", "N"], help="Wheather using pretrain embedding")
         parser.add_argument("--use_sparsity_review", default="N", choices=["Y", "N"], help="Wheather using sparsity reviews")       
+        parser.add_argument("--use_coverage", default="N", choices=["Y", "N"], help="grm")       
         parser.add_argument("--concat_review_rating", default="N", choices=["Y", "N"], help="")       
 
         parser.add_argument('--selectAttnModel', default='', help="Select model that wanna to show attn weight")
         parser.add_argument("--visulize_attn_epoch", type=int, default=0, help="No. of epoch that you like to show attention weight")
-
-        parser.add_argument("--use_nltk_stopword", default="N", choices=["Y", "N"], help="Using NLTK stopword")
         
         parser.add_argument("--hybird", default="N", choices=["Y", "N"], help="hybird model")    
 

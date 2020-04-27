@@ -207,6 +207,9 @@ class DecoderGRU(nn.Module):
     def __init__(self, embedding, hidden_size, output_size, n_layers=1, dropout=0.1):
         super(DecoderGRU, self).__init__()
 
+        # self.dec_merge_rating = dec_merge_rating
+        self._use_coverage = False
+
         # Keep for reference
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -216,6 +219,16 @@ class DecoderGRU(nn.Module):
         # Define layers
         self.embedding = embedding
         self.embedding_dropout = nn.Dropout(dropout)
+
+        # merge rating 
+        self.weight_rating = nn.Linear(5, hidden_size)
+        self.weight_enc_output = nn.Linear(hidden_size, hidden_size)
+        self.weight_user = nn.Linear(hidden_size, hidden_size)
+
+        self.weight_coverage = nn.Linear(output_size, hidden_size)
+        self._fc_300 = nn.Linear(605, hidden_size)
+
+        # GRU model
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
         self.out = nn.Linear(hidden_size, output_size)
 
@@ -224,8 +237,12 @@ class DecoderGRU(nn.Module):
         self.attn = nn.Linear(self.hidden_size, self.hidden_size)
         self.concat = nn.Linear(hidden_size * 2, hidden_size)
 
+        self.concat_coverage = nn.Linear(hidden_size * 3, hidden_size)
+    
+    def set_user_embedding(self, _user_embedding):
+        self._user_embedding = _user_embedding
+
     def CalculateAttn(self, hidden, encoder_output):
-        
         # Linear layer to calculate weighting score
         energy = self.attn(encoder_output)
         weighting_score = torch.sum(hidden * energy, dim=2)
@@ -235,32 +252,79 @@ class DecoderGRU(nn.Module):
         attn_weights = torch.softmax(weighting_score, dim=1).unsqueeze(1)
 
         return attn_weights
+    
+    def get_softmax_output(self):
+        return torch.softmax(self.output, dim=1)
 
-    def forward(self, input_step, last_hidden, context_vector, use_attn=True):
+    def get_output(self):
+        return self.output
+    
+    def set_coverage_prob(self, previous_prob, _use_coverage):
+        self._use_coverage = _use_coverage
+        self.coverage_prob = previous_prob
+        pass
+
+    def forward(self, input_step, last_hidden, context_vector, _encode_rating=None , _user_emb=None, _enable_attention=True):
         # Note: we run this one step (word) at a time
         # Get embedding of current input word
         embedded = self.embedding(input_step)
         embedded = self.embedding_dropout(embedded)
         
+        # Get user embedding of current input user
+        _user_emb = self._user_embedding(_user_emb)
+        _user_emb = _user_emb.unsqueeze(0)
+
+        """
+        Merge user embedding & rating
+        """        
+        _MODE = 0   # 0: project to 300d , 1: concat.
+        if (_MODE == 0):
+            # _MODE : Dense
+            initial_hidden = torch.tanh(
+                self.weight_rating(_encode_rating) +
+                self.weight_enc_output(last_hidden) +
+                self.weight_user(_user_emb)
+            )
+        elif (_MODE == 1):
+            # _MODE : Concat
+            initial_hidden = torch.tanh(
+                self._fc_300(torch.cat((last_hidden , _user_emb, _encode_rating), dim=2))
+            )
+
         # Forward through unidirectional GRU
-        rnn_output, hidden = self.gru(embedded, last_hidden)
+        rnn_output, hidden = self.gru(embedded, initial_hidden)
         rnn_output = rnn_output.squeeze(0)
 
-        if(use_attn):
+        if(_enable_attention):
             attn_weights = self.CalculateAttn(rnn_output, context_vector)
             
             context = attn_weights.bmm(context_vector.transpose(0, 1))
             context = context.squeeze(1)
 
             # Concat. rnn output & context inf.
-            concat_input = torch.cat((rnn_output, context), 1)
-            concat_output = torch.tanh(self.concat(concat_input))
+            concat_input = torch.cat((rnn_output, context), 1)            
 
-            output = self.out(concat_output)
+            if (self._use_coverage):
+                # Considerate coverage mechanism
+                _coverage_rep = self.weight_coverage(self.coverage_prob)    # previous word probability sum.
+                # Concat. attention output & coverage representation
+                concat_input = torch.cat((concat_input, _coverage_rep.squeeze_(0)), 1 )
+                # FC & Activation
+                concat_output = torch.tanh(self.concat_coverage(concat_input))          
+                output = self.out(concat_output)
+                pass
+            else:
+                # Origin : without coverage
+                concat_output = torch.tanh(self.concat(concat_input))
+                output = self.out(concat_output)
+                pass
         else:
+            # Without attention from Encoder
             rnn_output = torch.tanh(rnn_output)
             output = self.out(rnn_output)
         
+        self.output = output
+
         # log softmax
         output = self.logsoftmax(output)
 
@@ -537,42 +601,5 @@ class nrt_rating_predictor(nn.Module):
         elm_w_product = self.itemEmbedding(item_index) * self.userEmbedding(user_index)
         output = self.linear(elm_w_product)
         output = self.out(output)
-
-        return output
-
-class nrt_decoder(nn.Module):
-    def __init__(self, hidden_size, itemEmbedding, userEmbedding, n_layers=1, dropout=0):
-        
-        self.itemEmbedding = itemEmbedding
-        self.userEmbedding = userEmbedding
-        
-        self.weight_user = nn.Linear(hidden_size, hidden_size)
-        self.weight_item = nn.Linear(hidden_size, hidden_size)
-        self.weight_rate = nn.Linear(5, hidden_size)
-
-        self.gru = nn.GRU(
-            hidden_size, 
-            hidden_size, 
-            n_layers, 
-            dropout=(0 if n_layers == 1 else dropout)
-            )
-
-
-        self.linear = nn.Linear(hidden_size , hidden_size)
-        self.out = nn.Linear(hidden_size, 1)
-
-        pass
-    def forward(self, input_step, item_index, user_index, rating):
-        
-        # last_hidden = torch.tanh(
-        #     self.weight_user(self.userEmbedding(user_index)) + 
-        #     self.weight_item(self.itemEmbedding(item_index)) +
-        #     self.weight_rate(self.weight_rate) 
-        # )
-
-        embedded = self.embedding(input_step)
-        embedded = self.embedding_dropout(embedded)
-
-        rnn_output, hidden = self.gru(embedded, last_hidden)
 
         return output
