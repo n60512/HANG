@@ -90,7 +90,8 @@ def _train_HANN_model(data_preprocess):
     """
     num_of_reviews_unet = opt.num_of_correspond_reviews
 
-    user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+    # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+    user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=user_base_sql, 
         testing=False, 
@@ -184,7 +185,8 @@ def _train_HANN_model(data_preprocess):
 
         """Select testing set (`normal` or `GENERATIVE`)"""
         if(opt.sqlfile_fill_user==''):
-            user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+            # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
+            user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
         else:
             user_base_sql = opt.sqlfile_fill_user   # select the generative table
 
@@ -359,6 +361,6 @@ def _train_HANN_model(data_preprocess):
 
 if __name__ == "__main__":
 
-    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len, use_nltk_stopword=opt.use_nltk_stopword)
+    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len)
     _train_HANN_model(data_preprocess)
 

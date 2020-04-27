@@ -1,0 +1,111 @@
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+great 20
+('bum', 0.23619982600212097)
+('enhance', 0.2151806354522705)
+('deliberating', 0.2011178582906723)
+('tankini', 0.19795580208301544)
+('painfully', 0.1960563063621521)
+('boaters', 0.19357828795909882)
+('leggins', 0.1931200623512268)
+('sand', 0.18998593091964722)
+('similar', 0.18810060620307922)
+('compelling', 0.18807122111320496)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+wear 10
+('ed', 0.21806535124778748)
+('clamping', 0.21164506673812866)
+('merry', 0.2107352912425995)
+('memories', 0.21003711223602295)
+('unusual', 0.20220094919204712)
+('overbuilt', 0.19206683337688446)
+('folds', 0.1881089210510254)
+('variable', 0.18756446242332458)
+('same', 0.18498310446739197)
+('discoloring', 0.18300186097621918)
+
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+comfortable 10
+('inb', 0.2089255452156067)
+('whatchamacallit', 0.20696468651294708)
+('piccard', 0.1999989002943039)
+('leggings', 0.19274428486824036)
+('entry', 0.19243478775024414)
+('brwn', 0.18966548144817352)
+('involved', 0.18788738548755646)
+('cloudyband', 0.18746225535869598)
+('personnel', 0.18704798817634583)
+('lee', 0.186627596616745)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2      
+quality 10
+('traveling', 0.27653592824935913)
+('freshwater', 0.2134493887424469)
+('servant', 0.20963308215141296)
+('comfortle', 0.20461899042129517)
+('region', 0.19899260997772217)
+('duda', 0.19598378241062164)
+('promptly', 0.1958245486021042)
+('concealment', 0.19363316893577576)
+('xits', 0.19231922924518585)
+('unzips', 0.18770042061805725)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2      
+perfect 10
+('mildew', 0.2348194718360901)
+('emphasized', 0.2180672436952591)
+('retained', 0.1968269795179367)
+('receivers', 0.19655707478523254)
+('smalls', 0.19614282250404358)
+('spreading', 0.19507378339767456)
+('catcher', 0.1948605179786682)
+('might', 0.19101548194885254)
+('death', 0.18472567200660706)
+('suction', 0.18462228775024414)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+looks 10
+('sooooo', 0.2342587113380432)
+('supplement', 0.21713125705718994)
+('blind', 0.2073226273059845)
+('revolution', 0.19634458422660828)
+('while', 0.1927925944328308)
+('vacation', 0.1921933889389038)
+('difficulty', 0.19215787947177887)
+('kitties', 0.1897588074207306)
+('kawakubo', 0.18557508289813995)
+('reshape', 0.1851406693458557)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+pretty 10
+('trekking', 0.25242459774017334)
+('seiko', 0.23355093598365784)
+('squarely', 0.2120571881532669)
+('injury', 0.2088456153869629)
+('chic', 0.20324468612670898)
+('classey', 0.19940707087516785)
+('concern', 0.1940699815750122)
+('intricate', 0.19358688592910767)
+('sfanos', 0.19062359631061554)
+('already', 0.18829134106636047)

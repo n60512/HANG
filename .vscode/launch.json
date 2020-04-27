@@ -408,15 +408,17 @@
                 ]
         },
         {
-            "name": "Python: HANG (clothing)(hybird)(concat rating)(attention)",
+            "name": "Python: HANG (clothing)(hybird)(both)",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "console": "externalTerminal",
             "args": [
-                "--mode", "attention",
-                "--sqlfile", "HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql",
+                "--mode", "both",
+                "--sqlfile", "HANG/SQL/cloth_interaction@6_itembase.sql",
                 "--train_test_rand_seed", "42",
+                "--save_model_freq", "2",
+                "--epoch_to_store", "30",
                 "--setence_max_len", "50",
                 "--having_interactions", "6",
                 "--epoch", "80",
@@ -430,6 +432,8 @@
                 "--lr", "0.000005",
                 "--dropout", "0",
                 "--clip", "50",
+                "--decoder_learning_ratio", "1",
+                "--teacher_forcing_ratio", "1",
                 "--net_type", "item_base",
                 "--selectTable", "clothing_",
                 "--intra_attn_method", "dualFC",
@@ -437,11 +441,10 @@
                 "--use_pretrain_word", "Y",
                 "--use_sparsity_review", "N",
                 "--concat_review_rating", "Y",
-                "--visulize_attn_epoch", "34",
+                "--visulize_attn_epoch", "0",
                 "--use_nltk_stopword", "N",
                 "--hybird", "Y",
-                "--test_on_traindata", "N",
-                "--save_dir", "HANG/log/origin/20200404_16_44",                
+                "--test_on_traindata", "N",             
                 ]
         },           
         {

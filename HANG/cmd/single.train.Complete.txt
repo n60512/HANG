@@ -15,7 +15,7 @@ python HANG/train_single.py \
 --num_of_reviews 5 \
 --use_pretrain_word Y \
 --use_nltk_stopword N \
---concat_review_rating Y \
+--concat_review_rating N \
 --dropout 0.3 \
 --setence_max_len 50 \
 --clip 50 

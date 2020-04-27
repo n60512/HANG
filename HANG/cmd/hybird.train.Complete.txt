@@ -3,7 +3,7 @@ python HANG/train_hybird.py \
 --sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql \
 --train_test_rand_seed 42 \
 --save_model_freq 2 \
---epoch_to_store 0 \
+--epoch_to_store 30 \
 --setence_max_len 50 \
 --having_interactions 6 \
 --epoch 80 \

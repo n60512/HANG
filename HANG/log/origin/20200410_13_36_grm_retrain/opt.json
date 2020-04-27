@@ -1,6 +1,6 @@
 {
     "mode": "train",
-    "save_dir": "HANG/log/origin/20200408_11_15",
+    "save_dir": "HANG/log/origin/20200410_13_36",
     "minor_path": "",
     "sparsity_pickle": "",
     "sqlfile": "HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql",

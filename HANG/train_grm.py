@@ -159,6 +159,10 @@ def _train_test(data_preprocess):
             testing_label_sentences
             )
     
+    if(opt.use_coverage == 'Y'):
+        _use_coverage = True
+    else:
+        _use_coverage = False
 
     if(opt.mode == "train" or opt.mode == "both"):
         review_generation.train_grm(
@@ -169,7 +173,8 @@ def _train_test(data_preprocess):
             use_pretrain_item=False, 
             isCatItemVec=True, 
             ep_to_store=opt.epoch_to_store,
-            pretrain_wordVec=pretrain_wordVec
+            pretrain_wordVec=pretrain_wordVec,
+            _use_coverage = _use_coverage
             )
 
 
@@ -206,7 +211,9 @@ def _train_test(data_preprocess):
             isCatItemVec=True, 
             userObj=userObj, 
             itemObj=itemObj, 
-            voc=voc
+            voc=voc,
+            write_insert_sql=True,
+            _use_coverage=_use_coverage
             )
 
     # Evaluation
@@ -236,11 +243,11 @@ def _train_test(data_preprocess):
 
 
 def run():
-    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len, use_nltk_stopword=opt.use_nltk_stopword)
+    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len)
     _train_test(data_preprocess)
     pass
 
 if __name__ == "__main__":
-    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len, use_nltk_stopword=opt.use_nltk_stopword)
+    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len)
     _train_test(data_preprocess)
 

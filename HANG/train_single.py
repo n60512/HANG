@@ -158,6 +158,8 @@ def _single_model(data_preprocess):
     # Concat. rating embedding
     if(opt.concat_review_rating == 'Y'):
         concat_rating = True
+    else:
+        concat_rating = False
 
     """Start training process."""
     if(opt.mode == "train"):

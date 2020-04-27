@@ -2,7 +2,6 @@ WITH rand_train_set AS (
 	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
 	ORDER BY RAND() 
 	LIMIT 15040
-	-- LIMIT 14000 
 	) 
 SELECT clothing_interaction6_itembase.rank, clothing_interaction6_itembase.ID, clothing_interaction6_itembase.reviewerID, clothing_interaction6_itembase.`asin`, 
 clothing_interaction6_itembase.overall, clothing_interaction6_rm_sw.reviewText, clothing_interaction6_itembase.unixReviewTime 
@@ -18,7 +17,6 @@ WITH rand_train_set AS (
 	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
 	ORDER BY RAND() 
 	LIMIT 15040 
-	-- LIMIT 14000 
 	) 
 , tmptable AS ( 
 	SELECT DISTINCT(`asin`) 
@@ -27,7 +25,6 @@ WITH rand_train_set AS (
 		SELECT * FROM rand_train_set 
 		) 
 	LIMIT 2000 
-	-- LIMIT 3500 
 	) 
 SELECT clothing_interaction6_itembase.rank, clothing_interaction6_itembase.ID, clothing_interaction6_itembase.reviewerID, clothing_interaction6_itembase.`asin`, 
 clothing_interaction6_itembase.overall, clothing_interaction6_rm_sw.reviewText, clothing_interaction6_itembase.unixReviewTime 

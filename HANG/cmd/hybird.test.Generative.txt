@@ -21,7 +21,9 @@ python HANG/train_hybird.py \
 --setence_max_len 50 \
 --clip 50 \
 --hybird Y \
+--test_on_traindata N \
+--num_of_generative 2 \
 --sqlfile HANG/SQL/cloth_interaction@6_itembase_rm_sw.sql \
---sqlfile_fill_user HANG/SQL/cloth_candidate_asin_generation_fill_4.sql \
---minor_path Generate_4th_TestingLoss.txt \
---save_dir HANG/log/origin/20200326_09_59 
+--sqlfile_fill_user HANG/SQL/cloth_candidate_asin_generation_fill_cat_user.sql \
+--minor_path Generate_cat_user_2th_TestingLoss.txt \
+--save_dir HANG/log/origin/20200326_09_59_Compare_sparsity_generative 

@@ -1,0 +1,111 @@
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+great 10
+('tremendous', 0.8035287857055664)
+('wonderful', 0.7957789897918701)
+('terrific', 0.7897887229919434)
+('fantastic', 0.773542046546936)
+('incredible', 0.7530691623687744)
+('fabulous', 0.7481950521469116)
+('marvelous', 0.7479754686355591)
+('splendid', 0.7473635077476501)
+('amazing', 0.7465912699699402)
+('magnificent', 0.742343008518219)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+wear 10
+('wearing', 0.7484829425811768)
+('wore', 0.7129015922546387)
+('wears', 0.7084430456161499)
+('worn', 0.6878346800804138)
+('tear', 0.6409540176391602)
+('dress', 0.6382880210876465)
+('clothes', 0.5775128602981567)
+('hats', 0.5749472975730896)
+('donning', 0.5746567845344543)
+('doff', 0.5563807487487793)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+comfortable 10
+('comfy', 0.708574652671814)
+('uncomfortable', 0.7041213512420654)
+('confident', 0.6828193664550781)
+('confortable', 0.6678112745285034)
+('pleasant', 0.6636229157447815)
+('comfortably', 0.6569144129753113)
+('safe', 0.6492012739181519)
+('cozy', 0.648311972618103)
+('comforable', 0.6450895071029663)
+('spacious', 0.6375673413276672)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+quality 10
+('quantity', 0.722294807434082)
+('quaility', 0.6312156915664673)
+('reliability', 0.6276414394378662)
+('efficiency', 0.6185406446456909)
+('qulaity', 0.610228419303894)
+('timeliness', 0.6095651388168335)
+('availability', 0.6052089929580688)
+('standards', 0.6048915386199951)
+('excellence', 0.5996098518371582)
+('quailty', 0.5958532094955444)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+perfect 10
+('flawless', 0.7811546921730042)
+('ideal', 0.7336009740829468)
+('perfection', 0.6840900182723999)
+('excellent', 0.6827987432479858)
+('pefect', 0.6742109060287476)
+('good', 0.6532500982284546)
+('wonderful', 0.6497371196746826)
+('optimal', 0.6447968482971191)
+('fabulous', 0.6420910358428955)
+('complete', 0.6335681080818176)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2 
+looks 10
+('looked', 0.7597817182540894)
+('seems', 0.7401728630065918)
+('looking', 0.7339200973510742)
+('feels', 0.7291741371154785)
+('look', 0.7155874371528625)
+('sees', 0.7031958699226379)
+('appears', 0.6826460361480713)
+('thinks', 0.6728891134262085)
+('reads', 0.6678587794303894)
+('makes', 0.6478898525238037)
+
+=======================================
+1) Calculate similarity. (e.g. word1 word2)
+2) Search topk. (e.g. word1 k)
+Your choice:2
+pretty 10
+('fairly', 0.789217472076416)
+('quite', 0.7855889201164246)
+('very', 0.7827712297439575)
+('awfully', 0.7820771932601929)
+('incredibly', 0.7466116547584534)
+('extremely', 0.7355763912200928)
+('remarkably', 0.7295598387718201)
+('terribly', 0.7266517877578735)
+('too', 0.7210685014724731)
+('unbelievably', 0.718675971031189)
