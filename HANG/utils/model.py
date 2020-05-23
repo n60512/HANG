@@ -203,6 +203,130 @@ class HANN(nn.Module):
         # Return output and final hidden state
         return sigmoid_outputs, hidden, inter_attn_score, context_vector
 
+class HANN_new(nn.Module):
+    def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, 
+        isCatItemVec=False, concat_rating=False, netType='item_base', method='dualFC'):
+        super(HANN_new, self).__init__()
+        
+        self.method = method
+        self.n_layers = n_layers
+        self.hidden_size = hidden_size
+        self.latentK = latentK
+
+        self.embedding = embedding
+        self.itemEmbedding = itemEmbedding
+        self.userEmbedding = userEmbedding
+
+        self.isCatItemVec = isCatItemVec
+        self.concat_rating = concat_rating
+        self.netType = netType
+
+        if self.method == 'general':
+            self.attn = nn.Linear(self.hidden_size, hidden_size)
+            self.linear_beta = torch.nn.Linear(hidden_size, 1)   
+            
+        elif self.method == 'concat':
+            self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
+            self.v = nn.Parameter(torch.FloatTensor(hidden_size))
+
+        elif self.method == 'dualFC':            
+            self.linear3 = torch.nn.Linear(hidden_size, hidden_size)
+            self.linear4 = torch.nn.Linear(hidden_size, hidden_size)
+            self.linear_beta = torch.nn.Linear(hidden_size, 1)      
+
+        if(self.isCatItemVec):
+            GRU_InputSize = hidden_size*2
+            # GRU_InputSize = hidden_size + latentK   # word dim. + item dim.
+        else:
+            GRU_InputSize = hidden_size
+
+        if(self.concat_rating):
+            GRU_InputSize = GRU_InputSize+5                
+
+        self.inter_review = nn.GRU(GRU_InputSize, hidden_size, n_layers,
+                          dropout=(0 if n_layers == 1 else dropout))
+                          
+        self.dropout = nn.Dropout(dropout)
+        
+        self.fc_doubleK = nn.Linear(hidden_size*2 , self.latentK*2)
+        # self.fc_doubleK = nn.Linear(hidden_size + latentK , self.latentK*2)
+        self.fc_singleK = nn.Linear(self.latentK*2, self.latentK)
+        self.fc_out = nn.Linear(self.latentK, 1)
+    
+    def CalculateAttn(self, key_vector, query_vector):
+        
+        # Calculate weighting score
+        if(self.method == 'dualFC'):
+            x = F.relu(self.linear3(key_vector) +
+                    self.linear4(query_vector) 
+                )
+            weighting_score = self.linear_beta(x)
+            # Calculate attention score
+            inter_attn_score = torch.softmax(weighting_score, dim = 0)
+
+        elif (self.method=='dot'):
+            inter_attn_score = key_vector * query_vector
+            
+        elif (self.method=='general'):
+            energy = self.attn(query_vector)
+            x = F.relu(key_vector * energy)
+            weighting_score = self.linear_beta(x)
+            # Calculate attention score            
+            inter_attn_score = torch.softmax(weighting_score, dim = 0)
+
+        return inter_attn_score
+
+    def forward(self, intra_outputs, this_candidate_index, item_index, user_index, hidden=None, review_rating=None):
+        
+        if(self.isCatItemVec):
+            # Concat. intra output && candidate feature
+            if(self.netType=='user_base'):
+                item_feature = self.itemEmbedding(this_candidate_index)
+                inter_input = torch.cat((intra_outputs, item_feature), 2)
+            elif(self.netType=='item_base'):
+                user_feature = self.userEmbedding(this_candidate_index)
+                inter_input = torch.cat((intra_outputs, user_feature), 2)            
+        else:
+            inter_input = intra_outputs
+
+        if(self.concat_rating):
+            inter_input = torch.cat((inter_input, review_rating), 2)
+
+        # Forward pass through GRU
+        outputs, hidden = self.inter_review(inter_input, hidden)
+
+        # Calculate element-wise product
+        elm_w_product_inter = self.itemEmbedding(item_index) * self.userEmbedding(user_index)
+
+        # Calculate attention score
+        inter_attn_score = self.CalculateAttn(outputs, elm_w_product_inter)
+
+        # Consider attention score
+        weighting_outputs = inter_attn_score * outputs
+        context_vector = weighting_outputs
+
+        outputs_sum = torch.sum(weighting_outputs , dim = 0)  
+
+        # Concat. interaction vector & GRU output
+        outputs_cat = torch.cat((outputs_sum, elm_w_product_inter), dim=1)
+        
+        # dropout
+        outputs_cat = self.dropout(outputs_cat)
+
+        # hidden_size to 2*K dimension
+        outputs_ = self.fc_doubleK(outputs_cat) 
+        # 2*K to K dimension
+        outputs_ = self.fc_singleK(outputs_)  
+        # K to 1 dimension
+        outputs_ = self.fc_out(outputs_)
+
+        sigmoid_outputs = torch.sigmoid(outputs_)
+        # sigmoid_outputs = torch.tanh(outputs_)
+        sigmoid_outputs = sigmoid_outputs.squeeze(0)
+
+        # Return output and final hidden state
+        return sigmoid_outputs, hidden, inter_attn_score, context_vector
+
 class DecoderGRU(nn.Module):
     def __init__(self, embedding, hidden_size, output_size, n_layers=1, dropout=0.1):
         super(DecoderGRU, self).__init__()
@@ -220,13 +344,17 @@ class DecoderGRU(nn.Module):
         self.embedding = embedding
         self.embedding_dropout = nn.Dropout(dropout)
 
+        # Drop out
+        self._dropout = nn.Dropout(dropout)
+
         # merge rating 
         self.weight_rating = nn.Linear(5, hidden_size)
         self.weight_enc_output = nn.Linear(hidden_size, hidden_size)
         self.weight_user = nn.Linear(hidden_size, hidden_size)
+        self.weight_item = nn.Linear(hidden_size, hidden_size)
 
         self.weight_coverage = nn.Linear(output_size, hidden_size)
-        self._fc_300 = nn.Linear(605, hidden_size)
+        self._fc_300 = nn.Linear(905, hidden_size)
 
         # GRU model
         self.gru = nn.GRU(hidden_size, hidden_size, n_layers, dropout=(0 if n_layers == 1 else dropout))
@@ -242,6 +370,9 @@ class DecoderGRU(nn.Module):
     def set_user_embedding(self, _user_embedding):
         self._user_embedding = _user_embedding
 
+    def set_item_embedding(self, _item_embedding):
+        self._item_embedding = _item_embedding
+
     def CalculateAttn(self, hidden, encoder_output):
         # Linear layer to calculate weighting score
         energy = self.attn(encoder_output)
@@ -255,16 +386,13 @@ class DecoderGRU(nn.Module):
     
     def get_softmax_output(self):
         return torch.softmax(self.output, dim=1)
-
-    def get_output(self):
-        return self.output
     
     def set_coverage_prob(self, previous_prob, _use_coverage):
         self._use_coverage = _use_coverage
         self.coverage_prob = previous_prob
         pass
 
-    def forward(self, input_step, last_hidden, context_vector, _encode_rating=None , _user_emb=None, _enable_attention=True):
+    def forward(self, input_step, last_hidden, context_vector, _encode_rating=None , _user_emb=None, _item_emb=None, _enable_attention=True):
         # Note: we run this one step (word) at a time
         # Get embedding of current input word
         embedded = self.embedding(input_step)
@@ -274,21 +402,26 @@ class DecoderGRU(nn.Module):
         _user_emb = self._user_embedding(_user_emb)
         _user_emb = _user_emb.unsqueeze(0)
 
+        _item_emb = self._item_embedding(_item_emb)
+        _item_emb = _item_emb.unsqueeze(0)
+
+
         """
         Merge user embedding & rating
         """        
-        _MODE = 0   # 0: project to 300d , 1: concat.
+        _MODE = 1   # 0: project to 300d , 1: concat.
         if (_MODE == 0):
             # _MODE : Dense
             initial_hidden = torch.tanh(
                 self.weight_rating(_encode_rating) +
                 self.weight_enc_output(last_hidden) +
-                self.weight_user(_user_emb)
+                self.weight_user(_user_emb) +
+                self.weight_item(_item_emb) 
             )
         elif (_MODE == 1):
             # _MODE : Concat
             initial_hidden = torch.tanh(
-                self._fc_300(torch.cat((last_hidden , _user_emb, _encode_rating), dim=2))
+                self._fc_300(torch.cat((last_hidden , _user_emb, _item_emb, _encode_rating), dim=2))
             )
 
         # Forward through unidirectional GRU
@@ -302,7 +435,9 @@ class DecoderGRU(nn.Module):
             context = context.squeeze(1)
 
             # Concat. rnn output & context inf.
-            concat_input = torch.cat((rnn_output, context), 1)            
+            concat_input = torch.cat((rnn_output, context), 1)   
+            # Drop out layer
+            concat_input = self._dropout(concat_input) 
 
             if (self._use_coverage):
                 # Considerate coverage mechanism
@@ -586,20 +721,100 @@ class MultiFC(nn.Module):
 
 
 class nrt_rating_predictor(nn.Module):
-    def __init__(self, hidden_size, itemEmbedding, userEmbedding):
-        
+    def __init__(self, hidden_size, itemEmbedding, userEmbedding, voc_size):
+        super(nrt_rating_predictor, self).__init__()
         self.itemEmbedding = itemEmbedding
         self.userEmbedding = userEmbedding
 
-        self.linear = nn.Linear(hidden_size , hidden_size)
+        self.weight_user = nn.Linear(hidden_size , hidden_size)
+        self.weight_item = nn.Linear(hidden_size , hidden_size)
+
+        self.share_hidden = nn.Linear(hidden_size , hidden_size)
+        self.dense = nn.Linear(hidden_size , hidden_size)
         self.out = nn.Linear(hidden_size, 1)
 
+        # the content of review
+        self.content_out = nn.Linear(hidden_size, voc_size)
+
         pass
+
     def forward(self, item_index, user_index):
 
-        # Calculate element-wise product
-        elm_w_product = self.itemEmbedding(item_index) * self.userEmbedding(user_index)
-        output = self.linear(elm_w_product)
-        output = self.out(output)
+        output = self.share_hidden(
+            self.weight_user(
+                self.userEmbedding(user_index)
+            ) + 
+            self.weight_item(
+                self.itemEmbedding(item_index)
+            )
+        )
 
-        return output
+        output = torch.sigmoid(output)
+        
+        # Adding more layer
+        output = torch.sigmoid(
+            self.dense(output)
+        )
+        
+        # predict rating
+        rating_output = self.out(output)
+
+        # genertate the content of reviews
+        content_output = self.content_out(output)
+        content_output = torch.softmax(self.content_out(output), dim = 1)
+        stop = 1
+
+        return rating_output, content_output
+
+class nrt_decoder(nn.Module):
+    def __init__(self, hidden_size, output_size, itemEmbedding, userEmbedding, rating_embedding, embedding, n_layers=1, dropout=0):
+        super(nrt_decoder, self).__init__()
+
+        self.itemEmbedding = itemEmbedding
+        self.userEmbedding = userEmbedding
+        self.rating_embedding = rating_embedding
+        self.embedding = embedding
+        
+        self.weight_user = nn.Linear(hidden_size, hidden_size)
+        self.weight_item = nn.Linear(hidden_size, hidden_size)
+        self.weight_rate = nn.Linear(hidden_size, hidden_size)
+
+        self.gru = nn.GRU(
+            hidden_size, 
+            hidden_size, 
+            n_layers, 
+            dropout=(0 if n_layers == 1 else dropout)
+            )
+
+        self.embedding_dropout = nn.Dropout(dropout)
+        self.linear = nn.Linear(hidden_size , hidden_size)
+        self.out = nn.Linear(hidden_size, output_size)
+        
+        self.logsoftmax = nn.LogSoftmax(dim=1)
+
+        pass
+
+    def forward(self, input_step, item_index, user_index, rating, last_hidden , initial=False):
+
+        if initial == None:  
+            
+            # first state (h0)
+            last_hidden = torch.tanh(
+                self.weight_user(self.userEmbedding(user_index)) + 
+                self.weight_item(self.itemEmbedding(item_index)) +
+                self.weight_rate(self.rating_embedding(rating))
+            )
+            last_hidden = last_hidden.unsqueeze(0)
+
+        embedded = self.embedding(input_step)
+        embedded = self.embedding_dropout(embedded)
+
+        rnn_output, hidden = self.gru(embedded, last_hidden)
+        rnn_output = rnn_output.squeeze(0)
+        rnn_output = self.out(rnn_output)
+        
+        # log softmax
+        output = self.logsoftmax(rnn_output)
+
+        # Return output and final hidden state
+        return output, hidden    

@@ -22,6 +22,8 @@ class Voc:
         self.index2word = {PAD_token: "PAD"}
         self.num_words = 1
 
+        self.word2count["PAD"] = 1
+
     def addSentence(self, sentence):
         for word in sentence.split(' '):
             self.addWord(word)
@@ -101,32 +103,18 @@ class user:
 
 
 class Preprocess:
-    def __init__(self, hidden_size=300, setence_max_len=80, use_nltk_stopword = 'N'):
-        
-        if(use_nltk_stopword == 'Y'):
-            self.use_nltk_stopword = True
-        elif(use_nltk_stopword == 'N'):
-            self.use_nltk_stopword = False
+    def __init__(self, hidden_size=300, setence_max_len=80):
 
         self.setence_max_len = setence_max_len
         self.hidden_size = hidden_size
         self.unknown_ctr = 0
 
     def indexesFromSentence(self, voc, sentence , MAX_LENGTH = 200):
-        if(self.use_nltk_stopword):
-            sentence_segment = sentence.split(' ')
-            filtered_sentence = [word for word in sentence_segment if word not in stopwords.words('english')][:MAX_LENGTH]
-            return [voc.word2index[word] for word in filtered_sentence]
-        else:
-            sentence_segment = sentence.split(' ')[:MAX_LENGTH]
-            return [voc.word2index[word] for word in sentence_segment]
+        sentence_segment = sentence.split(' ')[:MAX_LENGTH]
+        return [voc.word2index[word] for word in sentence_segment]
 
     def indexesFromSentence_Evaluate(self, voc, sentence , MAX_LENGTH = 200):
-        if(self.use_nltk_stopword):
-            sentence_segment = sentence.split(' ')
-            sentence_segment = [word for word in sentence_segment if word not in stopwords.words('english')][:MAX_LENGTH]
-        else:
-            sentence_segment = sentence.split(' ')[:MAX_LENGTH]
+        sentence_segment = sentence.split(' ')[:MAX_LENGTH]
 
         indexes = list()
         for word in sentence_segment:
@@ -526,11 +514,28 @@ class Preprocess:
         else:
             return CANDIDATE, candiate2index
 
-    def load_data(self, sqlfile='', testing=False, table='clothing_', rand_seed=42, test_on_train_data=False, num_of_generative=None):
+
+    def generate_voc(self, res):
+        """
+        The method is for generating voc 
+        """
+        st = time.time()
+        print('Creating Voc ...') 
+        myVoc = Voc('Review')
+            
+        for index in tqdm.tqdm(range(len(res))):            
+            current_sentence = self._normalize_string(res[index]['reviewText'])
+            myVoc.addSentence(current_sentence) # myVoc add word 
+
+        print('Voc creation complete. [{}]'.format(time.time()-st))
+        return myVoc
+
+
+    def load_data(self, sqlfile='', mode='train', table='clothing_', rand_seed=42, test_on_train_data=False, num_of_generative=None):
         """Load dataset from database"""
 
         print('\nLoading asin/reviewerID from cav file...')
-        asin, reviewerID = self._read_asin_reviewer(table='clothing_')
+        asin, reviewerID = self._read_asin_reviewer(table=table)
         print('Loading asin/reviewerID complete.')
 
         # asin/reviewerID to index
@@ -544,13 +549,18 @@ class Preprocess:
         
         # Loading SQL cmd from .sql file
         with open(sqlfile) as file_:
-            if(sqlfile!='' and not testing):
+            if(sqlfile!='' and mode=='train'):
                 sql_cmd = file_.read().split(';')[0]
-            else:
+            elif(mode=='validation'):
                 if(test_on_train_data):
                     sql_cmd = file_.read().split(';')[1].replace('NOT IN','IN')
                 else:
                     sql_cmd = file_.read().split(';')[1]
+            elif(mode=='test'):
+                if(test_on_train_data):
+                    sql_cmd = file_.read().split(';')[2].replace('NOT IN','IN')
+                else:
+                    sql_cmd = file_.read().split(';')[2]                    
 
 
         # Setup random seed

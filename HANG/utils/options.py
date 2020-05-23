@@ -11,7 +11,7 @@ class GatherOptions():
         parser.add_argument(
             "--mode", 
             default="train", 
-            choices=["train", "test", 'both', 'showAttn', 'generation', 'eval_mse', 'attention'],
+            choices=["train", "test", 'both', 'showAttn', 'generation', 'eval_bleu', 'eval_mse', 'attention'],
             help="train or test the model" 
             )
         
@@ -53,11 +53,18 @@ class GatherOptions():
 
         parser.add_argument('--intra_attn_method', default='dualFC', help="intra attention method")
         parser.add_argument('--inter_attn_method', default='general', help="inter attention method")
+        parser.add_argument('--decoder_init_method', default='concat', help="select decoder method")
 
         parser.add_argument("--use_pretrain_word", default="Y", choices=["Y", "N"], help="Wheather using pretrain embedding")
         parser.add_argument("--use_sparsity_review", default="N", choices=["Y", "N"], help="Wheather using sparsity reviews")       
+
+        parser.add_argument("--_ran_sparsity", default="N", choices=["Y", "N"], help="Wheather using random sparsity reviews")
+        parser.add_argument("--_reviews_be_chosen", type=int, default=None, help="")
+
+
         parser.add_argument("--use_coverage", default="N", choices=["Y", "N"], help="grm")       
-        parser.add_argument("--concat_review_rating", default="N", choices=["Y", "N"], help="")       
+        parser.add_argument("--concat_item", default="N", choices=["Y", "N"], help="")
+        parser.add_argument("--concat_review_rating", default="N", choices=["Y", "N"], help="")
 
         parser.add_argument('--selectAttnModel', default='', help="Select model that wanna to show attn weight")
         parser.add_argument("--visulize_attn_epoch", type=int, default=0, help="No. of epoch that you like to show attention weight")
@@ -83,6 +90,7 @@ class GatherOptions():
             os.makedirs(opt.save_dir, exist_ok=True)
             os.makedirs(opt.save_dir + "/Loss", exist_ok=True)
             os.makedirs(opt.save_dir + "/Model", exist_ok=True)
+            os.makedirs(opt.save_dir + "/Bleu", exist_ok=True)
             os.makedirs(opt.save_dir + "/checkpts", exist_ok=True)
 
             with open(self.config_path, 'w') as f:
@@ -91,7 +99,7 @@ class GatherOptions():
         if opt.mode == "showAttn" or opt.mode == "attention":
             os.makedirs(opt.save_dir + "/VisualizeAttn/epoch_{}".format(opt.visulize_attn_epoch), exist_ok=True)
 
-        if opt.mode == "generation":
+        if opt.mode == "generation" or opt.mode == "train":
             os.makedirs(opt.save_dir + "/GenerateSentences", exist_ok=True)        
             if opt.test_on_traindata == "Y":
                 os.makedirs(opt.save_dir + "/GenerateSentences/on_train", exist_ok=True)
