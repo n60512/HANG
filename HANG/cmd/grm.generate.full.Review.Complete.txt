@@ -16,6 +16,6 @@ python HANG/train_grm.py \
 --clip 50 \
 --test_on_traindata N \
 --save_model_freq 2 \
---epoch 54 \
+--epoch 58 \
 --use_coverage Y \
---save_dir HANG/log/origin/20200422_12_52_grm_use.coverage
+--save_dir HANG/log/origin/20200429_14_09_grm_contain.sw_mode1_coverage

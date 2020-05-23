@@ -1,5 +1,5 @@
 python HANG/train_single.py \
---mode train \
+--mode test \
 --save_model_freq 2 \
 --epoch 60 \
 --batchsize 80 \
@@ -17,4 +17,5 @@ python HANG/train_single.py \
 --concat_review_rating Y \
 --dropout 0.3 \
 --setence_max_len 50 \
---clip 50 
+--clip 50 \
+--save_dir HANG/log/origin/20200521_11_32
