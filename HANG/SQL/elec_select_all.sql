@@ -1,0 +1,1 @@
+SELECT reviewText from elec_review;

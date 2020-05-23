@@ -44,6 +44,17 @@ def _single_model(data_preprocess):
         pretrain_wordVec = None
 
 
+    # Construct rating regression class
+    rating_regresstion = RatingRegresstion(
+        device, opt.net_type, opt.save_dir, voc, data_preprocess, 
+        training_epoch=opt.epoch, latent_k=opt.latentK, 
+        batch_size=opt.batchsize, hidden_size=opt.hidden, clip=opt.clip,
+        num_of_reviews = opt.num_of_reviews, 
+        intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
+        learning_rate=opt.lr, dropout=opt.dropout
+        )
+
+
     if(opt.mode == "train"):
 
         # Generate train set && candidate
@@ -72,18 +83,8 @@ def _single_model(data_preprocess):
             batch_size=opt.batchsize,
             get_rating_batch = True
             )
-    
-    # Construct rating regression class
-    rating_regresstion = RatingRegresstion(
-        device, opt.net_type, opt.save_dir, voc, data_preprocess, 
-        training_epoch=opt.epoch, latent_k=opt.latentK, batch_size=opt.batchsize, hidden_size=opt.hidden, clip=opt.clip,
-        num_of_reviews = opt.num_of_reviews, 
-        intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
-        learning_rate=opt.lr, dropout=opt.dropout
-        )
 
-    
-    if(opt.mode == "train"):
+        # Set training batches
         rating_regresstion.set_training_batches(
             training_sentences_batches, 
             external_memorys, 
@@ -96,7 +97,7 @@ def _single_model(data_preprocess):
 
 
     """Generate testing batches"""
-    if(opt.mode == "test" or opt.mode == "showAttn" or opt.mode == "train"):
+    if(opt.mode == "test" or opt.mode == "train"):
 
         # Loading testing data from database
         res, itemObj, userObj = data_preprocess.load_data(
@@ -161,7 +162,9 @@ def _single_model(data_preprocess):
     else:
         concat_rating = False
 
-    """Start training process."""
+    """
+    Start training process.
+    """
     if(opt.mode == "train"):
         rating_regresstion.train(
             opt.selectTable, 
@@ -182,21 +185,21 @@ def _single_model(data_preprocess):
             IntraGRU = list()
             for idx in range(opt.num_of_reviews):
                 model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, Epoch))
+                model.eval()
                 IntraGRU.append(model)
 
             # Loading InterGRU
             InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, Epoch))
+            InterGRU.eval()
 
-            rating_regresstion = RatingRegresstion(device, opt.net_type, opt.save_dir, voc, data_preprocess, 
-                training_epoch=opt.epoch, latent_k=opt.latentK, batch_size=opt.batchsize, hidden_size=opt.hidden, clip=opt.clip,
-                num_of_reviews = opt.num_of_reviews, 
-                intra_method=opt.intra_attn_method , inter_method=opt.inter_attn_method,
-                learning_rate=opt.lr, dropout=opt.dropout)
-       
+            RMSE = rating_regresstion.evaluate(
+                IntraGRU, 
+                InterGRU, 
+                isWriteAttn=False,
+                isCatItemVec=False, 
+                concat_rating=concat_rating
+                )       
                 
-            RMSE = rating_regresstion.evaluate(IntraGRU, InterGRU, testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs, 
-                isCatItemVec=True, visulize_attn_epoch=opt.epoch)
-
             print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
 
             with open(R'{}/Loss/TestingLoss.txt'.format(opt.save_dir),'a') as file:
@@ -207,7 +210,7 @@ def _single_model(data_preprocess):
 if __name__ == "__main__":
 
 
-    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len, use_nltk_stopword=opt.use_nltk_stopword)
+    data_preprocess = Preprocess(setence_max_len=opt.setence_max_len)
     _single_model(data_preprocess)
 
 

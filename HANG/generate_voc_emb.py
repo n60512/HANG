@@ -4,14 +4,17 @@ from utils.preprocessing import Preprocess
 import io
 import torch
 
-def writeVoc(sqlfile= 'HNAE/SQL/toys_selectALL.sql', selectTable = 'clothing_'):
+def writeVoc(sqlfile= 'HANG/SQL/elec_select_all.sql', selectTable = 'clothing_'):
 
-    res, itemObj, userObj = pre_work.loadData( sqlfile=sqlfile, testing=False, table= selectTable)  
+    res, itemObj, userObj = pre_work.load_data(sqlfile=sqlfile, testing=False, table= selectTable)  
+    print('end sql.')
     # Generate voc 
-    voc = pre_work.Generate_Voc(res)
-    fname = 'toys_ALL_Voc.txt'
+    # voc, _,_ = pre_work.generate_candidate_voc(res, generate_voc=True, net_type = 'item_base')
 
-    with open('HNAE/data/' + fname, 'w') as file:
+    voc = pre_work.generate_voc(res)
+    fname = '{}ALL_Voc.txt'.format(selectTable)
+
+    with open('HANG/data/' + fname, 'w') as file:
         for word in voc.word2index:
             file.write('{},'.format(word))
 
@@ -50,20 +53,20 @@ if __name__ == "__main__":
     
     pre_work = Preprocess(2562340)
 
-    if not True:
-        writeVoc(selectTable = 'toys_')
-
     if True:
-        with open('HNAE/data/toys_ALL_Voc.txt', 'r') as file:
-            content = file.read()
-        words = content.split(',')
+        writeVoc(selectTable = 'elec_')
+
+    # if True:
+    #     with open('HNAE/data/toys_ALL_Voc.txt', 'r') as file:
+    #         content = file.read()
+    #     words = content.split(',')
 
 
-    if True:
-        fname = '/home/kdd2080ti/Documents/Sean/RecommendationSystem/PretrainWord/wiki-news-300d-1M.vec'
-        model = KeyedVectors.load_word2vec_format(fname, binary=False)
+    # if True:
+    #     fname = '/home/kdd2080ti/Documents/Sean/RecommendationSystem/PretrainWord/wiki-news-300d-1M.vec'
+    #     model = KeyedVectors.load_word2vec_format(fname, binary=False)
 
-        print("Loading complete.")
+    #     print("Loading complete.")
 
-    if True:
-        StoreWordSemantic(words, 300, "HNAE/data/toys_festtext_subEmb.vec")
+    # if True:
+    #     StoreWordSemantic(words, 300, "HNAE/data/toys_festtext_subEmb.vec")

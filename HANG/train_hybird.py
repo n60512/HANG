@@ -37,10 +37,10 @@ def _train_HANN_model(data_preprocess):
 
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=item_net_sql, 
-        testing=False, 
+        mode='train', 
         table= opt.selectTable, 
         rand_seed=opt.train_test_rand_seed
-        )  # for clothing.
+        )
 
     # Generate voc & (User or Item) information , CANDIDATE could be USER or ITEM
     voc, ITEM, candiate2index = data_preprocess.generate_candidate_voc(
@@ -91,10 +91,10 @@ def _train_HANN_model(data_preprocess):
     num_of_reviews_unet = opt.num_of_correspond_reviews
 
     # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
-    user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
+    user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw_.sql'
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=user_base_sql, 
-        testing=False, 
+        mode='train', 
         table= opt.selectTable, 
         rand_seed=opt.train_test_rand_seed
         )
@@ -150,7 +150,7 @@ def _train_HANN_model(data_preprocess):
     # Loading testing data from database
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=opt.sqlfile, 
-        testing=True, 
+        mode='validation', 
         table=opt.selectTable, 
         rand_seed=opt.train_test_rand_seed
         )   # clothing
@@ -186,13 +186,13 @@ def _train_HANN_model(data_preprocess):
         """Select testing set (`normal` or `GENERATIVE`)"""
         if(opt.sqlfile_fill_user==''):
             # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
-            user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
+            user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw_.sql'
         else:
             user_base_sql = opt.sqlfile_fill_user   # select the generative table
 
         res, itemObj, userObj = data_preprocess.load_data(
             sqlfile = user_base_sql, 
-            testing = True, 
+            mode='validation', 
             table = opt.selectTable, 
             rand_seed = opt.train_test_rand_seed,
             num_of_generative=opt.num_of_generative
@@ -264,9 +264,27 @@ def _train_HANN_model(data_preprocess):
         correspond_review_rating
         )
 
+    # Set random sparsity
+    if(opt.concat_item == 'Y'):
+        concat_item = True
+    else:
+        concat_item = False
+
+
     # Concat. rating embedding
     if(opt.concat_review_rating == 'Y'):
         concat_rating = True
+    else:
+        concat_rating = False
+
+    # Set random sparsity
+    if(opt._ran_sparsity == 'Y'):
+        _ran_sparsity = True
+    else:
+        _ran_sparsity = False
+    
+    rating_regresstion.set_ran_sparsity(
+        )
 
     """Start training"""
     if(opt.mode == 'both' or opt.mode == 'train'):
@@ -276,9 +294,10 @@ def _train_HANN_model(data_preprocess):
             WriteTrainLoss=True, 
             store_every = opt.save_model_freq, 
             use_pretrain_item=False, 
-            isCatItemVec=not True, 
+            isCatItemVec=concat_item, 
             concat_rating=concat_rating,
-            pretrain_wordVec=pretrain_wordVec
+            pretrain_wordVec=pretrain_wordVec,
+            epoch_to_store = opt.epoch_to_store
             )
 
 
@@ -290,36 +309,43 @@ def _train_HANN_model(data_preprocess):
             IntraGRU = list()
             for idx in range(opt.num_of_reviews):
                 model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, Epoch))
+                model.eval()
                 IntraGRU.append(model)
             
             # Loading correspond IntraGRU
             correspond_IntraGRU = list()
             for idx in range(opt.num_of_correspond_reviews):
                 model = torch.load(R'{}/Model/correspond_IntraGRU_idx{}_epoch{}'.format(opt.save_dir, idx, Epoch))
+                model.eval()
                 correspond_IntraGRU.append(model)
             
             # Loading InterGRU
             InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, Epoch))
+            InterGRU.eval()
             correspond_InterGRU = torch.load(R'{}/Model/correspond_InterGRU_epoch{}'.format(opt.save_dir, Epoch))
-            
+            correspond_InterGRU.eval()
+
             # Loading MFC
             MFC = torch.load(R'{}/Model/MFC_epoch{}'.format(opt.save_dir, Epoch))
+            MFC.eval()
 
             # Evaluating hybird model
-            RMSE = rating_regresstion._hybird_evaluate(
+            RMSE, Accuracy = rating_regresstion._hybird_evaluate(
                 IntraGRU, InterGRU, correspond_IntraGRU, correspond_InterGRU, MFC,
                 testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs,
                 correspond_batches, 
-                isCatItemVec= not True, 
-                concat_rating= True,
+                isCatItemVec=concat_item, 
+                concat_rating= concat_rating,
                 visulize_attn_epoch=opt.epoch
                 )
 
-            print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
+            print('Epoch:{}\tMSE:{}\tAccuracy:{}'.format(Epoch, RMSE, Accuracy))
 
             if(opt.minor_path==''):
                 with open(R'{}/Loss/TestingLoss.txt'.format(opt.save_dir),'a') as file:
                     file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))
+                with open(R'{}/Loss/Accuracy.txt'.format(opt.save_dir),'a') as file:
+                    file.write('Epoch:{}\tAccuracy:{}\n'.format(Epoch, Accuracy))                      
             else:
                 with open(R'{}/Loss/{}'.format(opt.save_dir, opt.minor_path),'a') as file:
                     file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))
@@ -350,8 +376,8 @@ def _train_HANN_model(data_preprocess):
             IntraGRU, InterGRU, correspond_IntraGRU, correspond_InterGRU, MFC,
             testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs,
             correspond_batches, 
-            isCatItemVec= not True, 
-            concat_rating= True,
+            isCatItemVec=concat_item, 
+            concat_rating= concat_rating,
             visulize_attn_epoch=opt.visulize_attn_epoch,
             isWriteAttn=True,
             candidateObj=userObj
