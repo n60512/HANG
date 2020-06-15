@@ -1,10 +1,7 @@
 WITH rand_train_set AS ( 
 	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
 	ORDER BY RAND() 
-	-- LIMIT 15040 	
 	LIMIT 12800 
-	-- LIMIT 15000 
-	-- LIMIT 1000 
 	) 
 , candidate_set AS ( 
 	SELECT clothing_interaction6_itembase.ID, clothing_interaction6_itembase.reviewerID, clothing_interaction6_itembase.`asin` 
@@ -23,30 +20,70 @@ WHERE reviewerID IN (SELECT reviewerID FROM candidate_set)
 AND clothing_review.ID = clothing_interaction6_without_rm_sw.ID 
 ORDER BY reviewerID,unixReviewTime ASC 
 ;
+-- Equal to `SELECT * FROM clothing_userbase_42_oringinal`
 WITH rand_train_set AS ( 
 	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
 	ORDER BY RAND() 
-	-- LIMIT 15040 	
 	LIMIT 12800 
-	-- LIMIT 15000 
-	-- LIMIT 1000 
 	) 
-, tmptable AS ( 
+, validation_set AS ( 
 	SELECT DISTINCT(`asin`) 
 	FROM clothing_interaction6_itembase 
 	WHERE `asin` NOT IN ( 
-		-- SELECT * FROM clothing_interaction6_usertrain 
 		SELECT * FROM rand_train_set 
 		) 
-	-- LIMIT 2000 
 	LIMIT 1600 
-	-- LIMIT 200 
 	) 
 , candidate_set AS ( 
 	SELECT clothing_interaction6_itembase.ID, clothing_interaction6_itembase.reviewerID, clothing_interaction6_itembase.`asin` 
 	FROM clothing_interaction6_itembase 
 	WHERE clothing_interaction6_itembase.`asin` IN ( 
-		SELECT * FROM tmptable 
+		SELECT * FROM validation_set 
+	) 
+	AND rank = 6 
+	ORDER BY `asin`,rank ASC 
+)
+, candidate_table AS ( 
+	SELECT RANK() OVER (PARTITION BY reviewerID ORDER BY unixReviewTime,ID ASC) AS rank, 
+	clothing_review.`ID`, clothing_review.reviewerID , clothing_review.`asin`, 
+	clothing_review.overall, clothing_review.reviewText, clothing_review.unixReviewTime 
+	FROM  clothing_review 
+	WHERE reviewerID IN (SELECT reviewerID FROM candidate_set) 
+	ORDER BY reviewerID,unixReviewTime ASC 
+)
+SELECT * FROM candidate_table 
+WHERE rank<6
+ORDER BY reviewerID,unixReviewTime ASC 
+;
+WITH rand_train_set AS ( 
+	SELECT DISTINCT(`asin`) FROM clothing_interaction6_itembase 
+	ORDER BY RAND() 
+	LIMIT 12800 
+	) 
+, validation_set AS ( 
+	SELECT DISTINCT(`asin`) 
+	FROM clothing_interaction6_itembase 
+	WHERE `asin` NOT IN ( 
+		SELECT * FROM rand_train_set 
+		) 
+	LIMIT 1600 
+	) 
+, test_set AS ( 
+	SELECT DISTINCT(`asin`) 
+	FROM clothing_interaction6_itembase 
+	WHERE `asin` NOT IN ( 
+		SELECT * FROM rand_train_set 
+		) 
+	AND `asin` NOT IN ( 
+		SELECT * FROM validation_set 
+		) 		
+	LIMIT 1600 
+	) 	
+, candidate_set AS ( 
+	SELECT clothing_interaction6_itembase.ID, clothing_interaction6_itembase.reviewerID, clothing_interaction6_itembase.`asin` 
+	FROM clothing_interaction6_itembase 
+	WHERE clothing_interaction6_itembase.`asin` IN ( 
+		SELECT * FROM test_set 
 	) 
 	AND rank = 6 
 	ORDER BY `asin`,rank ASC 
@@ -57,5 +94,5 @@ clothing_review.overall, clothing_interaction6_without_rm_sw.reviewText, clothin
 FROM  clothing_review , clothing_interaction6_without_rm_sw 
 WHERE reviewerID IN (SELECT reviewerID FROM candidate_set) 
 AND clothing_review.ID = clothing_interaction6_without_rm_sw.ID 
-ORDER BY reviewerID,unixReviewTime ASC ;
+ORDER BY reviewerID,unixReviewTime ASC 
 ;

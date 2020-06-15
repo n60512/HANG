@@ -13,6 +13,7 @@ import random
 
 from gensim.models import KeyedVectors
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Use cuda
 USE_CUDA = torch.cuda.is_available()
@@ -84,14 +85,14 @@ def _train_HANN_model(data_preprocess):
         get_rating_batch = True
         )
     
-
     """
     Generate user-net training data.
     """
     num_of_reviews_unet = opt.num_of_correspond_reviews
 
     # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
-    user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw_.sql'
+    user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
+    # user_base_sql = 'HANG/SQL/cloth_interaction@6_userbase.sample.sql'
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=user_base_sql, 
         mode='train', 
@@ -106,7 +107,6 @@ def _train_HANN_model(data_preprocess):
         net_type = correspond_model_net_type,
         generate_voc=False
         )
-
 
     # Export the `Consumer's history` through chosing number of `candidate`
     chosing_num_of_candidate = opt.num_of_reviews
@@ -141,19 +141,30 @@ def _train_HANN_model(data_preprocess):
 
     """Setting training setup"""
     rating_regresstion.set_training_batches(training_batches, training_asin_batches, candidate_asins, candidate_reviewerIDs, training_batch_labels)
-    rating_regresstion.set_correspond_batches(correspond_batches)           # this method for hybird only
-    rating_regresstion.set_correspond_num_of_reviews(num_of_reviews_unet)   # this method for hybird only
-    rating_regresstion.set_correspond_external_memorys(correspond_asin_batches)    # this method for hybird only
+    rating_regresstion.set_correspond_batches(correspond_batches)                   # this method for hybird only
+    rating_regresstion.set_correspond_num_of_reviews(num_of_reviews_unet)           # this method for hybird only
+    rating_regresstion.set_correspond_external_memorys(correspond_asin_batches)     # this method for hybird only
     rating_regresstion.set_training_review_rating(training_review_rating, correspond_review_rating)
+
+    rating_regresstion.set_candidate_object(userObj, itemObj)
+
+    # Chose dataset for (train / validation / test)
+    if (opt.mode == 'train'):
+        _sql_mode = 'validation'
+        pass
+    elif (opt.mode == 'test' or opt.mode == 'attention'):
+        _sql_mode = 'test'
+        _sql_mode = 'validation'
+        pass
 
     """Creating testing batches"""
     # Loading testing data from database
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=opt.sqlfile, 
-        mode='validation', 
+        mode=_sql_mode, 
         table=opt.selectTable, 
         rand_seed=opt.train_test_rand_seed
-        )   # clothing
+        )
 
     # If mode = test, won't generate a new voc.
     CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(
@@ -179,20 +190,19 @@ def _train_HANN_model(data_preprocess):
         get_rating_batch = True
         )
 
-
-
     if(opt.hybird == 'Y'):
 
         """Select testing set (`normal` or `GENERATIVE`)"""
         if(opt.sqlfile_fill_user==''):
             # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
-            user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw_.sql'
+            user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
+            # user_base_sql = 'HANG/SQL/cloth_interaction@6_userbase.sample.sql'
         else:
             user_base_sql = opt.sqlfile_fill_user   # select the generative table
 
         res, itemObj, userObj = data_preprocess.load_data(
             sqlfile = user_base_sql, 
-            mode='validation', 
+            mode=_sql_mode, 
             table = opt.selectTable, 
             rand_seed = opt.train_test_rand_seed,
             num_of_generative=opt.num_of_generative
@@ -280,14 +290,18 @@ def _train_HANN_model(data_preprocess):
     # Set random sparsity
     if(opt._ran_sparsity == 'Y'):
         _ran_sparsity = True
+        _reviews_be_chosen = opt._reviews_be_chosen
     else:
         _ran_sparsity = False
+        _reviews_be_chosen = None
     
     rating_regresstion.set_ran_sparsity(
+        _ran_sparsity=_ran_sparsity, 
+        _reviews_be_chosen=_reviews_be_chosen
         )
 
     """Start training"""
-    if(opt.mode == 'both' or opt.mode == 'train'):
+    if(opt.mode == 'train'):
         rating_regresstion.hybird_train(
             opt.selectTable, 
             isStoreModel=True, 
@@ -330,7 +344,7 @@ def _train_HANN_model(data_preprocess):
             MFC.eval()
 
             # Evaluating hybird model
-            RMSE, Accuracy = rating_regresstion._hybird_evaluate(
+            RMSE, Accuracy, cnf_matrix = rating_regresstion._hybird_evaluate(
                 IntraGRU, InterGRU, correspond_IntraGRU, correspond_InterGRU, MFC,
                 testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs,
                 correspond_batches, 
@@ -338,6 +352,20 @@ def _train_HANN_model(data_preprocess):
                 concat_rating= concat_rating,
                 visulize_attn_epoch=opt.epoch
                 )
+
+            # Write confusion matrix
+            plt.figure()
+            rating_regresstion.plot_confusion_matrix(
+                cnf_matrix, 
+                classes = ['1pt', '2pt', '3pt', '4pt', '5pt'],
+                normalize = True,
+                title = 'confusion matrix'
+                )
+
+            plt.savefig('{}/Loss/Confusion.Matrix/_{}.png'.format(
+                opt.save_dir,
+                Epoch
+            ))
 
             print('Epoch:{}\tMSE:{}\tAccuracy:{}'.format(Epoch, RMSE, Accuracy))
 

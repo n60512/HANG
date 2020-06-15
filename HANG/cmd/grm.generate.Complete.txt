@@ -17,5 +17,5 @@ python HANG/train_grm.py \
 --clip 50 \
 --test_on_traindata N \
 --concat_review_rating Y \
---epoch 56 \
---save_dir HANG/log/origin/20200521_12_19
+--epoch 58 \
+--save_dir HANG/log/origin/20200610_17_19

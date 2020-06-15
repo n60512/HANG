@@ -1,5 +1,5 @@
 python HANG/train_hybird.py \
---mode both \
+--mode train \
 --sqlfile HANG/SQL/cloth_interaction@6_itembase.sql \
 --train_test_rand_seed 42 \
 --save_model_freq 2 \
@@ -24,6 +24,7 @@ python HANG/train_hybird.py \
 --inter_attn_method dualFC \
 --use_pretrain_word Y \
 --use_sparsity_review N \
+--concat_item Y \
 --concat_review_rating N \
 --visulize_attn_epoch 0 \
 --hybird Y \

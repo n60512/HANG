@@ -5,7 +5,7 @@ python HANG/train_hybird.py \
 --save_model_freq 2 \
 --setence_max_len 50 \
 --having_interactions 6 \
---epoch 80 \
+--epoch 70 \
 --num_of_reviews 5 \
 --num_of_correspond_reviews 4 \
 --batchsize 80 \
@@ -22,10 +22,11 @@ python HANG/train_hybird.py \
 --inter_attn_method general \
 --use_pretrain_word Y \
 --use_sparsity_review N \
+--concat_item N \
 --concat_review_rating Y \
 --visulize_attn_epoch 0 \
 --hybird Y \
 --epoch_to_store 40 \
 --test_on_traindata N \
 --start_epoch 40 \
---save_dir HANG/log/origin/20200519_09_30_hybrid
+--save_dir HANG/log/origin/20200522_20_47_hybrid

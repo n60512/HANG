@@ -1,6 +1,6 @@
 python HANG/train_hybird.py \
---mode both \
---sqlfile HANG/SQL/cloth_interaction@6_itembase_train_val_test.sql \
+--mode train \
+--sqlfile HANG/SQL/cloth_interaction@6_itembase.sql \
 --train_test_rand_seed 42 \
 --save_model_freq 2 \
 --setence_max_len 50 \
@@ -22,6 +22,7 @@ python HANG/train_hybird.py \
 --inter_attn_method general \
 --use_pretrain_word Y \
 --use_sparsity_review N \
+--concat_item N \
 --concat_review_rating Y \
 --visulize_attn_epoch 0 \
 --hybird Y \

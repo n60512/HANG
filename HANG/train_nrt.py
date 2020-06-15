@@ -65,7 +65,7 @@ def _train_test(data_preprocess):
         learning_rate=opt.lr, dropout=opt.dropout)        
 
 
-    if(opt.mode == "train" or opt.mode == "both"):
+    if(opt.mode == "train" or opt.mode == "generation"):
 
         # Generate train set && candidate
         training_batch_labels, candidate_asins, candidate_reviewerIDs, label_sen_batch = data_preprocess.get_train_set(CANDIDATE, 
@@ -96,7 +96,7 @@ def _train_test(data_preprocess):
         review_generation.set_decoder_learning_ratio(opt.decoder_learning_ratio)
 
     # Generate testing batches
-    if(opt.mode == "eval_mse" or opt.mode == "generation" or opt.mode == "train"):        
+    if(opt.mode == "eval_mse" or opt.mode == "generation" or opt.mode == "train"):
         
         review_generation.set_testing_set(
             test_on_train_data = opt.test_on_traindata
@@ -144,6 +144,7 @@ def _train_test(data_preprocess):
             testing=True
             )
 
+        review_generation.set_object(userObj, itemObj)
         review_generation.set_testing_batches(
             testing_batches, 
             testing_external_memorys, 
@@ -158,7 +159,7 @@ def _train_test(data_preprocess):
     else:
         _use_coverage = False
 
-    if(opt.mode == "train" or opt.mode == "both"):
+    if(opt.mode == "train"):
         review_generation.train_nrt(
             opt.selectTable, 
             isStoreModel=True, 
@@ -168,6 +169,33 @@ def _train_test(data_preprocess):
             ep_to_store=opt.epoch_to_store,
             pretrain_wordVec=pretrain_wordVec,
             voc=voc
+            )
+
+    if(opt.mode == "test"):
+
+        NRT = torch.load(R'{}/Model/NRT_epoch{}'.format(opt.save_dir, opt.epoch))
+        NRT.eval()
+
+        NRTD = torch.load(R'{}/Model/NRTD_epoch{}'.format(opt.save_dir, opt.epoch))
+        NRTD.eval()
+
+        _ = review_generation.evaluate_nrt_generation(
+            NRT, 
+            NRTD
+            )
+
+
+    if(opt.mode == "generation"):
+
+        NRT = torch.load(R'{}/Model/NRT_epoch{}'.format(opt.save_dir, opt.epoch))
+        NRT.eval()
+
+        NRTD = torch.load(R'{}/Model/NRTD_epoch{}'.format(opt.save_dir, opt.epoch))
+        NRTD.eval()
+
+        _ = review_generation.evaluate_nrt_generation(
+            NRT, 
+            NRTD
             )
 
     pass

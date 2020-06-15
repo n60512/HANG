@@ -149,3 +149,6 @@ HANG/data/clothing_festtext_subEmb.vec
 HANG/data/Export_trained_wordVector/interaction@15_review@4_nopre.vec
 HANG/data/Export_trained_wordVector/interaction@15_review@4_withpre.vec
 HANG/data/toys_festtext_subEmb.vec
+
+HANG/log/origin/*/Loss/Confusion.Matrix/*.png
+HANG/log/origin/*/GenerateSentences/*/*/insert.sql
