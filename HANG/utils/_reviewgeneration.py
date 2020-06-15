@@ -29,6 +29,11 @@ class ReviewGeneration(train_test_setup):
         self.teacher_forcing_ratio = 1.0        
         pass    
 
+    def set_object(self, userObj, itemObj):
+        self.userObj = userObj
+        self.itemObj = itemObj
+        pass
+
     def set_training_review_rating(self, training_review_rating):
         self.training_review_rating = training_review_rating
         pass
@@ -79,8 +84,10 @@ class ReviewGeneration(train_test_setup):
 
     def _train_iteration_grm(self, IntraGRU, InterGRU, DecoderModel, 
         IntraGRU_optimizer, InterGRU_optimizer, DecoderModel_optimizer,
-        training_batches, external_memorys, candidate_items, candidate_users, training_batch_labels, label_sentences,
-        isCatItemVec=False, concat_rating=False, _use_coverage=False, fix_rating=False):
+        training_batches, external_memorys, candidate_items, candidate_users, 
+        training_batch_labels, label_sentences,
+        isCatItemVec=False, concat_rating=False, 
+        _use_coverage=False, fix_rating=False):
         """ Training each iteraction"""
 
         # Initialize this epoch loss
@@ -320,9 +327,10 @@ class ReviewGeneration(train_test_setup):
 
         return hann_epoch_loss, decoder_epoch_loss
 
-    def train_grm(self, select_table, isStoreModel=False, isStoreCheckPts=False, ep_to_store=0, WriteTrainLoss=False, store_every = 2, 
-            use_pretrain_item= False, isCatItemVec= False, concat_rating=False, pretrain_wordVec=None, 
-            _use_coverage=False):
+    def train_grm(self, select_table, isStoreModel = False, isStoreCheckPts = False, ep_to_store = 0, 
+            WriteTrainLoss=False, store_every = 2, use_pretrain_item = False, 
+            isCatItemVec = False, concat_rating = False, pretrain_wordVec = None, 
+            _use_coverage = False):
 
         asin, reviewerID = self._get_asin_reviewer()
         # Initialize textual embeddings
@@ -437,7 +445,7 @@ class ReviewGeneration(train_test_setup):
         for Epoch in range(self.training_epoch):
 
             if(_flag):
-                if RMSE < 1.074:
+                if RMSE < 1.076 and Epoch>2:
                     _flag = False
                     fix_rating = True
 
@@ -477,14 +485,6 @@ class ReviewGeneration(train_test_setup):
                 with open(R'{}/Loss/TrainingLoss.txt'.format(self.save_dir),'a') as file:
                     file.write('Epoch:{}\tItemNet(SE):{}\tNNL:{}\n'.format(Epoch, hann_loss_average, decoder_loss_average))
 
-            # """
-            # Evaluating MSE
-            # """
-            # RMSE = self.evaluate_mse(IntraGRU, InterGRU, isCatItemVec=isCatItemVec, concat_rating=concat_rating)
-            # print('Epoch:{}\tMSE:{}\t'.format(Epoch, RMSE))
-            # with open(R'{}/Loss/TestingLoss.txt'.format(self.save_dir),'a') as file:
-            #     file.write('Epoch:{}\tRMSE:{}\n'.format(Epoch, RMSE))   
-
             """
             Evaluating BLEU
             """
@@ -502,35 +502,27 @@ class ReviewGeneration(train_test_setup):
                 )
 
             print('Epoch:{}\tMSE:{}\tNNL:{}\t'.format(Epoch, RMSE, _nllloss))
-            with open(R'{}/Loss/TestingLoss.txt'.format(self.save_dir),'a') as file:
+            with open(R'{}/Loss/ValidationLoss.txt'.format(self.save_dir),'a') as file:
                 file.write('Epoch:{}\tRMSE:{}\tNNL:{}\n'.format(Epoch, RMSE, _nllloss))   
 
             for num, val in enumerate(batch_bleu_score):
-                with open('{}/Bleu/blue{}.score.txt'.format(self.save_dir, (num+1)),'a') as file:
+                with open('{}/Bleu/Validation/blue{}.score.txt'.format(self.save_dir, (num+1)),'a') as file:
                     file.write('BLEU SCORE {}.ep.{}: {}\n'.format((num+1), Epoch, val))
                 print('BLEU SCORE {}: {}'.format((num+1), val))
 
-            with open('{}/Bleu/rouge.score.txt'.format(self.save_dir), 'a') as file:
+            with open('{}/Bleu/Validation/rouge.score.txt'.format(self.save_dir), 'a') as file:
                 file.write('=============================\nEpoch:{}\n'.format(Epoch))
                 for _rouge_method, _metrics in average_rouge_score.items():
                     for _key, _val in _metrics.items():
                         file.write('{}. {}: {}\n'.format(_rouge_method, _key, _val))
                         print('{}. {}: {}'.format(_rouge_method, _key, _val))
             
-
         pass
-
-
-    def set_object(self, userObj, itemObj):
-        self.userObj = userObj
-        self.itemObj = itemObj
-        pass
-
 
     def evaluate_generation(self, 
         IntraGRU, InterGRU, DecoderModel, 
         isCatItemVec=False, concat_rating=False,
-         isWriteAttn=False,
+        isWriteAttn=False,
         write_origin=False,
         write_insert_sql=False,
         _use_coverage=False,
@@ -636,6 +628,11 @@ class ReviewGeneration(train_test_setup):
                 dec_merge_rating = True
                 if(dec_merge_rating):
                     current_labels = torch.tensor(self.testing_batch_labels[idx][batch_ctr]).to(self.device)
+                    
+                    # # all one test
+                    # _all_one_point = [float(1.0) for _it in range(80)]
+                    # current_labels = torch.FloatTensor(_all_one_point).to(self.device)
+
                     _encode_rating = list()
                     _encode_rating = self._rating_to_onehot(current_labels)
                     _encode_rating = torch.tensor(_encode_rating).to(self.device)
@@ -670,8 +667,6 @@ class ReviewGeneration(train_test_setup):
 
                     if(t == 0 and _use_coverage):
                         # Set up initial coverage probability
-                        # initial_coverage_prob = torch.randn(1, 80, 44504)
-                        # initial_coverage_prob = torch.zeros(1, 80, 44519)
                         initial_coverage_prob = torch.zeros(1, 80, self.voc.num_words)
                         initial_coverage_prob = initial_coverage_prob.to(self.device)
                         DecoderModel.set_coverage_prob(initial_coverage_prob, _use_coverage)
@@ -805,7 +800,7 @@ Generate: {' '.join(decoded_words)}
                             generate_text + 
                             str.format('BLEU-{}: {}\n'.format(
                                 (num+1), 
-                                bleu_score_1_
+                                val
                                 )
                             )
                         )    
@@ -835,7 +830,7 @@ Generate: {' '.join(decoded_words)}
                         if (write_insert_sql):
                             # Write insert sql
                             sqlpath = (fpath + 'insert.sql')
-                            self._write_gr_into_sqlfile(
+                            self._write_generate_reviews_into_sqlfile(
                                 sqlpath, 
                                 self.userObj.index2reviewerID[user_.item()],
                                 self.itemObj.index2asin[asin_.item()],
@@ -873,15 +868,15 @@ Generate: {' '.join(decoded_words)}
 
         return RMSE, _nllloss, batch_bleu_score, average_rouge_score
 
-    """
-    Following method is for baseline model (NRT)
-    """
+
     def _train_iteration_nrt(self, NRT, NRTD, NRT_optimizer, NRTD_optimizer,
         training_batches, external_memorys, candidate_items, 
         candidate_users, training_batch_labels, label_sentences, voc=None,
         fix_rating=False
         ):
-        """NRT Model, Training each iteraction"""
+        """
+        Method for baseline model (NRT)
+        """        
 
         # Initialize this epoch loss
         nrt_epoch_loss = 0
@@ -971,6 +966,29 @@ Generate: {' '.join(decoded_words)}
                         nll_loss = criterion(decoder_output, target_variable[t])
                         decoder_loss += nll_loss
                 else:
+                    for t in range(max_target_len):
+                        if(t==0):
+                            initial = True
+                        else:
+                            initial = False
+
+                        decoder_output, decoder_hidden = NRTD(
+                            decoder_input, 
+                            current_asins, 
+                            current_reviewerIDs, 
+                            rating_output_,
+                            decoder_hidden,
+                            initial = initial
+                        )
+                        # No teacher forcing: next input is decoder's own current output
+                        _, topi = decoder_output.topk(1)
+
+                        decoder_input = torch.LongTensor([[topi[i][0] for i in range(self.batch_size)]])
+                        decoder_input = decoder_input.to(self.device)
+
+                        # Calculate and accumulate loss
+                        nll_loss = criterion(decoder_output, target_variable[t])
+                        decoder_loss += nll_loss
                     pass
                 
                 # loss = nrt_loss + decoder_loss
@@ -990,7 +1008,9 @@ Generate: {' '.join(decoded_words)}
         return nrt_epoch_loss, decoder_epoch_loss
 
     def calculate_word_frequency(self):
-        # Calculate word freq
+        """ 
+        Calculate word frequency for coverage mechanism
+        """
         _word_term_freq = list()
         _total_count = 0
         
@@ -1109,8 +1129,6 @@ Generate: {' '.join(decoded_words)}
 
         pass
 
-
-
     def evaluate_nrt(self, NRT, NRTD, label_sentences, voc=None, write_insert_sql=False, candidateObj=None):
 
         # Initialize this epoch loss
@@ -1138,7 +1156,7 @@ Generate: {' '.join(decoded_words)}
 
                     # current_batch = self.testing_batches[reviews_ctr][batch_ctr]
 
-                    target_batch = label_sentences[0][batch_ctr]
+                    target_batch = self.testing_label_sentences[0][batch_ctr]
                     # Ground true sentences & rating
                     target_variable, target_len, ratings = target_batch 
                     target_variable = target_variable.to(self.device)
@@ -1204,7 +1222,6 @@ Generate: {' '.join(decoded_words)}
                         all_scores = torch.cat((all_scores, torch.t(decoder_scores_)), dim=0) 
 
 
-
                     """
                     Decode user review from search result.
                     """
@@ -1239,7 +1256,6 @@ Generate: {' '.join(decoded_words)}
                         bleu_score_3_ = nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weights=(0, 0, 1, 0))
                         bleu_score_4_ = nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weights=(0, 0, 0, 1))
                         sentence_bleu_score = [bleu_score_1_, bleu_score_2_, bleu_score_3_, bleu_score_4_]
-                        # predict_rating, current_rating_labels[index_].item()
 
                         bleu_score_1 += bleu_score_1_
                         bleu_score_2 += bleu_score_2_
@@ -1257,8 +1273,6 @@ Generate: {' '.join(decoded_words)}
 
                             pass
                                      
-
-                    
                     # Average bleu score through reviewer
                     batch_bleu_score_1 += (bleu_score_1/len(current_reviewerIDs))
                     batch_bleu_score_2 += (bleu_score_2/len(current_reviewerIDs))
@@ -1286,6 +1300,136 @@ Generate: {' '.join(decoded_words)}
 
         return RMSE, batch_bleu_score, average_rouge_score
     
+
+    def evaluate_nrt_generation(self, NRT, NRTD):
+
+        for batch_ctr in range(len(self.testing_batches[0])): #how many batches
+            for idx in range(len(self.testing_batch_labels)):
+                # Forward pass through nrt
+
+                target_batch = self.testing_label_sentences[0][batch_ctr]
+                # Ground true sentences & rating
+                target_variable, target_len, ratings = target_batch 
+                target_variable = target_variable.to(self.device)
+                max_target_len = max(target_len)
+                target_len = target_len.to(self.device)                  
+
+                current_asins = torch.tensor(self.testing_asins[idx][batch_ctr]).to(self.device)
+                current_reviewerIDs = torch.tensor(self.testing_reviewerIDs[idx][batch_ctr]).to(self.device)
+
+                # Pass through NTR
+                rating_output, content_output = NRT(current_asins, current_reviewerIDs)                    
+                rating_output = rating_output.squeeze(1)
+
+                # Caculate Square Loss 
+                current_labels = torch.tensor(self.testing_batch_labels[idx][batch_ctr]).to(self.device)
+                rating_output_ = (rating_output*(5-1)+1)             
+                rating_output_ = torch.round(rating_output_, out=None).long()
+
+                """
+                Runing Decoder
+                """
+                # Create initial decoder input (start with SOS tokens for each sentence)
+                decoder_input = torch.LongTensor([[self.SOS_token for _ in range(self.batch_size)]])
+                decoder_input = decoder_input.to(self.device)   
+
+                decoder_hidden = None   # initial decoder hidden
+
+                # Initialize tensors to append decoded words to
+                all_tokens = torch.zeros([0], device=self.device, dtype=torch.long)
+                all_scores = torch.zeros([0], device=self.device)  
+
+                for t in range(max_target_len):
+                    if(t==0):
+                        initial = True
+                    else:
+                        initial = False
+
+                    decoder_output, decoder_hidden = NRTD(
+                        decoder_input, 
+                        current_asins, 
+                        current_reviewerIDs, 
+                        rating_output_,
+                        decoder_hidden,
+                        initial = initial
+                    )
+                    # No teacher forcing: next input is decoder's own current output
+                    decoder_scores_, topi = decoder_output.topk(1)
+                    decoder_input = torch.LongTensor([[topi[i][0] for i in range(self.batch_size)]])
+                    decoder_input = decoder_input.to(self.device)
+
+                    ds, di = torch.max(decoder_output, dim=1)
+
+                    # Record token and score
+                    all_tokens = torch.cat((all_tokens, decoder_input), dim=0)
+                    all_scores = torch.cat((all_scores, torch.t(decoder_scores_)), dim=0) 
+
+
+                """
+                Decode user review from search result.
+                """              
+                for index_ , user_ in enumerate(current_reviewerIDs):
+                    
+                    asin_ = current_asins[index_]
+
+                    current_user_tokens = all_tokens[:,index_].tolist()
+                    decoded_words = [self.voc.index2word[token] for token in current_user_tokens if token != 0]
+
+                    
+                    current_user_sen = target_variable[:,index_].tolist()
+                    origin_sen = [self.voc.index2word[token] for token in current_user_sen if token != 0]
+
+                    try:
+                        product_title = self.asin2title[
+                            self.itemObj.index2asin[asin_.item()]
+                        ]
+                    except Exception as ex:
+                        product_title = 'None'
+                        pass
+
+
+                    hypothesis = ' '.join(decoded_words)
+                    reference = ' '.join(origin_sen)
+
+                    generate_text = str.format(
+f"""
+=========================
+Userid & asin:{self.userObj.index2reviewerID[user_.item()]},{self.itemObj.index2asin[asin_.item()]}
+title:{product_title}
+Predict:{(rating_output*(5-1)+1)[index_].item()}
+Rating:{current_labels[index_].item()}
+Generate: {hypothesis}
+Origin: {reference}
+"""
+                    )
+
+
+                    # BLEU Score Calculation
+                    bleu_score_1_ = nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weights=(1, 0, 0, 0))
+                    bleu_score_2_ = nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weights=(0, 1, 0, 0))
+                    bleu_score_3_ = nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weights=(0, 0, 1, 0))
+                    bleu_score_4_ = nltk.translate.bleu_score.sentence_bleu([reference], hypothesis, weights=(0, 0, 0, 1))
+                    
+                    sentence_bleu_score = [bleu_score_1_, bleu_score_2_, bleu_score_3_, bleu_score_4_]
+
+                    for num, val in enumerate(sentence_bleu_score):
+                        generate_text = (
+                            generate_text + 
+                            str.format('BLEU-{}: {}\n'.format(
+                                (num+1), 
+                                val
+                                )
+                            )
+                        )    
+
+
+
+                    fpath = (R'{}/GenerateSentences/on_test/'.format(self.save_dir))
+                    with open(fpath + 'sentences_ep{}.txt'.format(self.training_epoch),'a') as file:
+                        file.write(generate_text)              
+
+        return 0
+
     def set_testing_set(self, test_on_train_data='Y'):
         if test_on_train_data == 'Y':
             self.test_on_train_data = True
@@ -1370,14 +1514,16 @@ Generate: {' '.join(decoded_words)}
 
         return RMSE
 
-    def _write_gr_into_sqlfile(self, fpath, reviewerID, asin, generative_review):
-        """Store the generative result into sql format file."""
+    def _write_generate_reviews_into_sqlfile(self, fpath, reviewerID, asin, generative_review, table='#table'):
+        """
+        Store the generative result into sql format file.
+        """
         sql = (
             """
-            INSERT INTO clothing_sparsity_generation_res_42 
+            INSERT INTO {} 
             (`reviewerID`, `asin`, `generative_review`) VALUES 
             ('{}', '{}', '{}');
-            """.format(reviewerID, asin, generative_review)
+            """.format(table, reviewerID, asin, generative_review)
         )
 
         with open(fpath,'a') as file:

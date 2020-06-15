@@ -224,65 +224,73 @@ class Preprocess:
             
             for user_ctr in tqdm.tqdm(range(len(USERorITEM))):
                 
-                # Insert group encodeing
-                if((user_ctr % batch_size == 0) and user_ctr>0):
-                    num_of_batch_group+=1
+                # Over sampling 0611
+                if(not True and USERorITEM[user_ctr].rating[review_ctr]==1 ):
+                    _os_count = 3
+                else:
+                    _os_count = 1
+
+                for _os_c in range(_os_count):   
+
+                    # Insert group encodeing
+                    if((user_ctr % batch_size == 0) and user_ctr>0):
+                        num_of_batch_group+=1
+                        
+                        # encode pre group
+                        training_batch = self._batch2TrainData(
+                                            voc, 
+                                            new_training_batch_sen[num_of_batch_group-1], 
+                                            new_training_batch_rating[num_of_batch_group-1],
+                                            isSort = False,
+                                            normalizeRating = False,
+                                            testing=testing
+                                            )
+                        # training_batches[num_of_batch_group-1].append(training_batch)
+                        training_batches[num_of_batch_group-1] = training_batch
+
+                    this_user_sentence = USERorITEM[user_ctr].sentences[review_ctr]
+                    this_user_rating = USERorITEM[user_ctr].rating[review_ctr]
                     
-                    # encode pre group
-                    training_batch = self._batch2TrainData(
-                                        voc, 
-                                        new_training_batch_sen[num_of_batch_group-1], 
-                                        new_training_batch_rating[num_of_batch_group-1],
-                                        isSort = False,
-                                        normalizeRating = False,
-                                        testing=testing
-                                        )
-                    # training_batches[num_of_batch_group-1].append(training_batch)
-                    training_batches[num_of_batch_group-1] = training_batch
-
-                this_user_sentence = USERorITEM[user_ctr].sentences[review_ctr]
-                this_user_rating = USERorITEM[user_ctr].rating[review_ctr]
-                
-                # Using itemObj/userObj to find index
-                if(net_type == 'user_base'):
-                    # origin user_base : candidate would be product
-                    this_user_asin = USERorITEM[user_ctr].this_asin[review_ctr]
-                    this_user_asin_index = candidateObj.asin2index[this_user_asin]
-                elif(net_type == 'item_base'):
-                    # item_base : candidate would be user
-                    this_asin_user = USERorITEM[user_ctr].this_reviewerID[review_ctr]
-                    this_asin_user_index = candidateObj.reviewerID2index[this_asin_user]
+                    # Using itemObj/userObj to find index
+                    if(net_type == 'user_base'):
+                        # origin user_base : candidate would be product
+                        this_user_asin = USERorITEM[user_ctr].this_asin[review_ctr]
+                        this_user_asin_index = candidateObj.asin2index[this_user_asin]
+                    elif(net_type == 'item_base'):
+                        # item_base : candidate would be user
+                        this_asin_user = USERorITEM[user_ctr].this_reviewerID[review_ctr]
+                        this_asin_user_index = candidateObj.reviewerID2index[this_asin_user]
 
 
-                if(num_of_batch_group not in new_training_batch_sen):
-                    new_training_batch_sen[num_of_batch_group] = []
-                    new_training_batch_rating[num_of_batch_group] = []
-                    new_training_batch_asin[num_of_batch_group] = []
-                    # training_batches[num_of_batch_group] = []
+                    if(num_of_batch_group not in new_training_batch_sen):
+                        new_training_batch_sen[num_of_batch_group] = []
+                        new_training_batch_rating[num_of_batch_group] = []
+                        new_training_batch_asin[num_of_batch_group] = []
+                        # training_batches[num_of_batch_group] = []
 
-                new_training_batch_sen[num_of_batch_group].append(this_user_sentence)
-                new_training_batch_rating[num_of_batch_group].append(this_user_rating)   
-                
-                if(net_type == 'user_base'):
-                    new_training_batch_asin[num_of_batch_group].append(this_user_asin_index) 
-                elif(net_type == 'item_base'):                
-                    new_training_batch_asin[num_of_batch_group].append(this_asin_user_index) 
-                
+                    new_training_batch_sen[num_of_batch_group].append(this_user_sentence)
+                    new_training_batch_rating[num_of_batch_group].append(this_user_rating)   
+                    
+                    if(net_type == 'user_base'):
+                        new_training_batch_asin[num_of_batch_group].append(this_user_asin_index) 
+                    elif(net_type == 'item_base'):                
+                        new_training_batch_asin[num_of_batch_group].append(this_asin_user_index) 
+                    
 
-                # Insert group encodeing (For Last group)
-                if(user_ctr == (len(USERorITEM)-1)):
-                    num_of_batch_group+=1
-                    # encode pre group
-                    training_batch = self._batch2TrainData(
-                                        voc, 
-                                        new_training_batch_sen[num_of_batch_group-1], 
-                                        new_training_batch_rating[num_of_batch_group-1],
-                                        isSort = False,
-                                        normalizeRating = False,
-                                        testing=testing                                    
-                                        )
-                    # training_batches[num_of_batch_group-1].append(training_batch)
-                    training_batches[num_of_batch_group-1] = training_batch            
+                    # Insert group encodeing (For Last group)
+                    if(user_ctr == (len(USERorITEM)-1)):
+                        num_of_batch_group+=1
+                        # encode pre group
+                        training_batch = self._batch2TrainData(
+                                            voc, 
+                                            new_training_batch_sen[num_of_batch_group-1], 
+                                            new_training_batch_rating[num_of_batch_group-1],
+                                            isSort = False,
+                                            normalizeRating = False,
+                                            testing=testing                                    
+                                            )
+                        # training_batches[num_of_batch_group-1].append(training_batch)
+                        training_batches[num_of_batch_group-1] = training_batch            
 
 
             new_training_batches_sentences.append(new_training_batch_sen)
@@ -346,6 +354,7 @@ class Preprocess:
             for rating_ctr in range(num_of_reviews, num_of_reviews+num_of_rating, 1):
                 
                 # append candidate label
+                tmp = USER[user_ctr]
                 this_traning_label = USER[user_ctr].rating[rating_ctr]
                 new_training_label.append(this_traning_label)
 

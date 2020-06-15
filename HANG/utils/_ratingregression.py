@@ -9,6 +9,11 @@ from utils.setup import train_test_setup
 from utils._wtensorboard import _Tensorboard
 from visualization.attention_visualization import Visualization
 
+import itertools
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import numpy as np
+
 class RatingRegresstion(train_test_setup):
     def __init__(self, device, net_type, save_dir, voc, prerocess, 
         training_epoch=100, latent_k=32, batch_size=40, hidden_size=300, clip=50,
@@ -23,7 +28,12 @@ class RatingRegresstion(train_test_setup):
         self.use_sparsity_review = False
 
         pass
-        
+
+    def set_candidate_object(self, userObj, itemObj):
+        self.itemObj = itemObj
+        self.userObj = userObj
+        pass
+
     def set_training_review_rating(self, training_review_rating, correspond_review_rating):
         self.training_review_rating = training_review_rating
         self.training_correspond_review_rating = correspond_review_rating
@@ -407,7 +417,9 @@ class RatingRegresstion(train_test_setup):
                     # Initialize optimizer
                     intra_GRU_optimizer[reviews_ctr].zero_grad()
 
-                    current_batch = training_batches[reviews_ctr][batch_ctr]            
+                    # tmp = 
+
+                    current_batch = training_batches[reviews_ctr][batch_ctr]
                     input_variable, lengths, ratings = current_batch
                     input_variable = input_variable.to(self.device)
                     lengths = lengths.to(self.device)
@@ -535,7 +547,7 @@ class RatingRegresstion(train_test_setup):
                         if(concat_rating):
                             inter_intput_rating = torch.cat(
                                 (inter_intput_rating, _encode_rating) , 0
-                                ) 
+                                )                                
 
                 correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(
                     interInput, 
@@ -546,6 +558,29 @@ class RatingRegresstion(train_test_setup):
                     )
 
                 correspond_net_outputs = correspond_net_outputs.squeeze(1)
+
+
+
+                # Writing Intra-attention weight to .html file
+                if(not True and batch_ctr > 160):
+                    
+                    """Only considerate user attention"""
+                    # current_candidates = correspond_current_reviewerIDs
+                    # current_asins
+                    # current_reviewerIDs                    
+                    
+                    for index_ , candidateObj_ in enumerate(current_asins):
+
+                        
+                        _item = self.itemObj.index2asin[current_asins[index_].item()]
+                        _user = self.userObj.index2reviewerID[current_reviewerIDs[index_].item()]
+            
+                        word_indexes = input_variable[:,index_].tolist()
+                        words = [self.voc.index2word[index] for index in word_indexes if self.voc.index2word[index] != 'PAD']
+                        sentence = [" ".join(words)]
+
+                        stop = 1
+  
 
                 """
                 Forward pass through final prediction net model
@@ -559,12 +594,28 @@ class RatingRegresstion(train_test_setup):
                 finalOut = finalOut.squeeze(1)
                  
                 
-                # Caculate loss 
-                current_labels = torch.tensor(training_batch_labels[idx][batch_ctr]).to(self.device)    # grond truth
+                opt_method = 'se'
+                if(opt_method == 'se'):
+                    # Caculate loss 
+                    current_labels = torch.tensor(training_batch_labels[idx][batch_ctr]).to(self.device)    # grond truth
 
-                err = (finalOut*(5-1)+1) - current_labels
-                loss = torch.mul(err, err)
-                loss = torch.mean(loss, dim=0)
+                    err = (finalOut*(5-1)+1) - current_labels
+                    loss = torch.mul(err, err)
+                    loss = torch.mean(loss, dim=0)
+
+                elif(opt_method == 'nll'):
+                    loss = 0
+                    current_labels = torch.tensor(training_batch_labels[idx][batch_ctr]).to(self.device)    # grond truth
+                    for index_, label_ in enumerate(current_labels):
+                        true_lb = int(label_.item())
+                        
+                        # Calculate nll
+                        _ = torch.log(
+                            finalOut[index_][true_lb-1]
+                            )
+
+                        loss += _                
+                    loss = (-1) * loss
                 
                 # Perform backpropatation
                 loss.backward()
@@ -810,7 +861,7 @@ class RatingRegresstion(train_test_setup):
             print('Epoch:{}\tSE:{}\t'.format(Epoch, current_loss_average))
 
 
-            RMSE, Accuracy = self._hybird_evaluate(
+            RMSE, Accuracy, _ = self._hybird_evaluate(
                 intra_GRU, inter_GRU, correspond_intra_GRU, correspond_inter_GRU, MFC,
                 self.testing_batches, self.testing_external_memorys, self.testing_batch_labels, 
                 self.testing_asins, self.testing_reviewerIDs,
@@ -819,6 +870,21 @@ class RatingRegresstion(train_test_setup):
                 concat_rating = concat_rating
                 )
             print('Epoch:{}\tMSE:{}\tAccuracy:{}'.format(Epoch, RMSE, Accuracy))
+
+            # Write confusion matrix
+            plt.figure()
+            self.plot_confusion_matrix(
+                _, 
+                classes = ['1pt', '2pt', '3pt', '4pt', '5pt'],
+                normalize = not True,
+                title = 'confusion matrix'
+                )
+
+            plt.savefig('{}/Loss/Confusion.Matrix/_{}.png'.format(
+                self.save_dir,
+                Epoch
+            ))    
+
 
             if(Epoch % store_every == 0 and isStoreModel and Epoch >= epoch_to_store):
                 torch.save(inter_GRU, R'{}/Model/InterGRU_epoch{}'.format(self.save_dir, Epoch))
@@ -856,6 +922,9 @@ class RatingRegresstion(train_test_setup):
         group_loss = 0
         _accuracy = 0
         AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
+        
+        true_label = list()
+        predict_label = list()
 
         for batch_ctr in range(len(training_batches[0])): #how many batches
             for idx in range(len(validate_batch_labels)):
@@ -1023,33 +1092,89 @@ class RatingRegresstion(train_test_setup):
                     finalOut = MFC(outputs, correspond_net_outputs, current_asins, current_reviewerIDs)
                     finalOut = finalOut.squeeze(1)
 
+                
+                opt_method = 'se'
+                if(opt_method == 'se'):
+                    # Caculate loss 
+                    current_labels = torch.tensor(validate_batch_labels[idx][batch_ctr]).to(self.device)
 
-                current_labels = torch.tensor(validate_batch_labels[idx][batch_ctr]).to(self.device)
+                    err = (finalOut*(5-1)+1) - current_labels
+                    loss = torch.mul(err, err)
+                    loss = torch.mean(loss, dim=0)
+                    loss = torch.sqrt(loss)
+                    
+                    # Calculate accuracy
+                    _total = len(current_labels)
+                    _count = 0
+                    predict_rating = (finalOut*(5-1)+1).round()
+                    for _key, _val in enumerate(current_labels):
+                        if(predict_rating[_key] == current_labels[_key]):
+                            _count += 1
+                            pass
 
-                err = (finalOut*(5-1)+1) - current_labels
-                loss = torch.mul(err, err)
-                loss = torch.mean(loss, dim=0)
-                loss = torch.sqrt(loss)
+                        true_label.append(int(current_labels[_key]))
+                        predict_label.append(int(predict_rating[_key]))
 
-                group_loss += loss
+                        pass
+
+                    _accuracy += float(_count/_total)                    
+
+                elif(opt_method == 'nll'):
+                    loss = 0
+                    current_labels = torch.tensor(validate_batch_labels[idx][batch_ctr]).to(self.device)
+                    for index_, label_ in enumerate(current_labels):
+                        true_lb = int(label_.item())
+                        tmp = finalOut[index_][true_lb-1]
+                        # Calculate nll
+                        _ = torch.log(
+                            finalOut[index_][true_lb-1]
+                            )
+
+                        loss += _
+
+                        predict_rating = torch.argmax(finalOut[index_])
+                        true_label.append(int(current_labels[index_]))
+                        predict_label.append(int(predict_rating.item())+1)
 
 
-                # Calculate accuracy
-                _total = len(current_labels)
-                _count = 0
-                predict_rating = (finalOut*(5-1)+1).round()
-                for _key, _val in enumerate(current_labels):
-                    if(predict_rating[_key] == current_labels[_key]):
-                        _count += 1
+                        pass
+                
+                if(opt_method == 'se'):
+                    group_loss += loss
+                    pass
+                elif(opt_method == 'nll'):
+                    # Calculate nll
+                    group_loss += (-1)*loss
 
-                _accuracy += float(_count/_total)
-                stop =1
+                    # Calculate accuracy
+                    _total = len(true_label)
+                    _count = 0
+                    for _key, _val in enumerate(true_label):
+                        if(predict_label[_key] == true_label[_key]):
+                            _count += 1
+
+                    _accuracy += float(_count/_total)      
+
+                    pass                 
+                    
+        
 
         num_of_iter = len(training_batches[0])*len(validate_batch_labels)
+
+
+        # Calculate confusion matrix
+        cnf_matrix = confusion_matrix(true_label, predict_label)
+
+        if(opt_method == 'nll'):
+            NLL = group_loss/num_of_iter
+            Accuracy = _accuracy/num_of_iter
+            return NLL, Accuracy, cnf_matrix
+
         RMSE = group_loss/num_of_iter
         Accuracy = _accuracy/num_of_iter
 
-        return RMSE, Accuracy
+
+        return RMSE, Accuracy, cnf_matrix
 
     def _rating_to_onehot(self, rating, rating_dim=5):
         # Initial onehot table
@@ -1063,3 +1188,39 @@ class RatingRegresstion(train_test_setup):
             _encode_rating.append(current_onehot)
 
         return _encode_rating
+
+
+    def plot_confusion_matrix(self, cm, classes,
+                            normalize = False,
+                            title = 'Confusion matrix',
+                            cmap = plt.cm.Blues):
+        """
+        This function prints and plots the confusion matrix.
+        Normalization can be applied by setting `normalize=True`.
+        """
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+            # print("Normalized confusion matrix")
+        else:
+            # print('Confusion matrix, without normalization')
+            pass
+
+        # print(cm)
+
+        plt.imshow(cm, interpolation='nearest', cmap=cmap)
+        plt.title(title)
+        plt.colorbar()
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+
+        fmt = '.2f' if normalize else 'd'
+        thresh = cm.max() / 2.
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            plt.text(j, i, format(cm[i, j], fmt),
+                    horizontalalignment="center",
+                    color="white" if cm[i, j] > thresh else "black")
+
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        plt.tight_layout()

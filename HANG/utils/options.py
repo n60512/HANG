@@ -83,15 +83,17 @@ class GatherOptions():
         self.opt = opt
         self.config_path = os.path.join(opt.save_dir, 'opt.json')
 
-        if opt.mode == "test":
+        if (opt.mode == "test" or opt.mode == "eval_bleu" or  opt.mode == 'generation'):
             self.parser.add_argument("--model_dir", help="path to load model for test(the largest step or use --step to specify)")
+            os.makedirs(opt.save_dir + "/Bleu/Test", exist_ok=True)
             
         if opt.mode == "train" or opt.mode == "both":
             os.makedirs(opt.save_dir, exist_ok=True)
             os.makedirs(opt.save_dir + "/Loss", exist_ok=True)
             os.makedirs(opt.save_dir + "/Model", exist_ok=True)
-            os.makedirs(opt.save_dir + "/Bleu", exist_ok=True)
+            os.makedirs(opt.save_dir + "/Bleu/Validation", exist_ok=True)
             os.makedirs(opt.save_dir + "/checkpts", exist_ok=True)
+            os.makedirs(opt.save_dir + "/Loss/Confusion.Matrix", exist_ok=True)
 
             with open(self.config_path, 'w') as f:
                 json.dump(self.opt.__dict__, f)

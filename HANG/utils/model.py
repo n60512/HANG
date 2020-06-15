@@ -412,7 +412,7 @@ class DecoderGRU(nn.Module):
         _MODE = 1   # 0: project to 300d , 1: concat.
         if (_MODE == 0):
             # _MODE : Dense
-            initial_hidden = torch.tanh(
+            input_hidden = torch.tanh(
                 self.weight_rating(_encode_rating) +
                 self.weight_enc_output(last_hidden) +
                 self.weight_user(_user_emb) +
@@ -420,12 +420,12 @@ class DecoderGRU(nn.Module):
             )
         elif (_MODE == 1):
             # _MODE : Concat
-            initial_hidden = torch.tanh(
+            input_hidden = torch.tanh(
                 self._fc_300(torch.cat((last_hidden , _user_emb, _item_emb, _encode_rating), dim=2))
             )
 
         # Forward through unidirectional GRU
-        rnn_output, hidden = self.gru(embedded, initial_hidden)
+        rnn_output, hidden = self.gru(embedded, input_hidden)
         rnn_output = rnn_output.squeeze(0)
 
         if(_enable_attention):
@@ -692,6 +692,8 @@ class MultiFC(nn.Module):
         self.fc_doubleK = nn.Linear(hidden_size*3 , self.latentK*2)
         self.fc_singleK = nn.Linear(self.latentK*2, self.latentK)
         self.fc_out = nn.Linear(self.latentK, 1)
+
+        self.fc_nll_out = nn.Linear(self.latentK, 5)
     
     def forward(self, item_rep, user_rep, item_index, user_index):
         
@@ -709,15 +711,21 @@ class MultiFC(nn.Module):
         outputs_ = self.fc_doubleK(rep_cat) 
         # 2*K to K dimension
         outputs_ = self.fc_singleK(outputs_)  
-        # K to 1 dimension
-        outputs_ = self.fc_out(outputs_)
 
-        sigmoid_outputs = torch.sigmoid(outputs_)
-        # sigmoid_outputs = torch.tanh(outputs_)
-        sigmoid_outputs = sigmoid_outputs.squeeze(0)
+        opt_method = 'se'
+        if(opt_method == 'se'):
+            # K to 1 dimension
+            outputs_ = self.fc_out(outputs_)
+            sigmoid_out = torch.sigmoid(outputs_)
+            outputs = sigmoid_out.squeeze(0)
 
+        elif(opt_method == 'nll'):
+            outputs_ = self.fc_nll_out(outputs_)
+            softmax_out = torch.softmax(outputs_, dim=1)
+            outputs = softmax_out.squeeze(0)
+            
         # Return output and final hidden state
-        return sigmoid_outputs
+        return outputs
 
 
 class nrt_rating_predictor(nn.Module):
