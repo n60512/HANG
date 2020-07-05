@@ -26,7 +26,9 @@ if(opt.use_pretrain_word == 'Y'):
 
 def _single_model(data_preprocess):
 
-    res, itemObj, userObj = data_preprocess.load_data(sqlfile=opt.sqlfile, testing=False, table= opt.selectTable, rand_seed=opt.train_test_rand_seed)  # for clothing.
+    res, itemObj, userObj = data_preprocess.load_data(
+        sqlfile=opt.sqlfile, 
+        mode='train', table= opt.selectTable, rand_seed=opt.train_test_rand_seed)  # for clothing.
 
     # Generate voc & (User or Item) information , CANDIDATE could be USER or ITEM
     voc, CANDIDATE, candiate2index = data_preprocess.generate_candidate_voc(
@@ -102,7 +104,7 @@ def _single_model(data_preprocess):
         # Loading testing data from database
         res, itemObj, userObj = data_preprocess.load_data(
             sqlfile=opt.sqlfile, 
-            testing=True, 
+            mode='validation',
             table=opt.selectTable, 
             rand_seed=opt.train_test_rand_seed, 
             test_on_train_data=False

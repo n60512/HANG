@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 import nltk
+from nltk.corpus import stopwords
 
 import tqdm
 import random
@@ -26,7 +27,8 @@ class ReviewGeneration(train_test_setup):
         self.SOS_token = 1  # Start-of-sentence token
         self.EOS_token = 2  # End-of-sentence token   
 
-        self.teacher_forcing_ratio = 1.0        
+        # self.teacher_forcing_ratio = 0.8
+        self.teacher_forcing_ratio = 1.0
         pass    
 
     def set_object(self, userObj, itemObj):
@@ -224,14 +226,14 @@ class ReviewGeneration(train_test_setup):
                             # initial_coverage_prob = torch.randn(1, 80, 44504)
                             # initial_coverage_prob = torch.zeros(1, 80, 44519)
 
-                            initial_coverage_prob = torch.zeros(1, 80, self.voc.num_words)
+                            initial_coverage_prob = torch.zeros(1, self.batch_size, self.voc.num_words)
 
 
                             initial_coverage_prob = initial_coverage_prob.to(self.device)
                             DecoderModel.set_coverage_prob(initial_coverage_prob, _use_coverage)
                         
                         # Forward pass through decoder
-                        decoder_output, decoder_hidden = DecoderModel(
+                        decoder_output, decoder_hidden, decoder_attn_weight = DecoderModel(
                             decoder_input, 
                             decoder_hidden, 
                             context_vector,
@@ -270,12 +272,26 @@ class ReviewGeneration(train_test_setup):
                         decoder_loss += nll_loss
                 else:
                     for t in range(max_target_len):
-                        decoder_output, decoder_hidden = DecoderModel(
+
+                        if(t == 0 and _use_coverage):
+                            # Set up initial coverage probability
+                            # initial_coverage_prob = torch.randn(1, 80, 44504)
+                            # initial_coverage_prob = torch.zeros(1, 80, 44519)
+
+                            initial_coverage_prob = torch.zeros(1, self.batch_size, self.voc.num_words)
+
+
+                            initial_coverage_prob = initial_coverage_prob.to(self.device)
+                            DecoderModel.set_coverage_prob(initial_coverage_prob, _use_coverage)
+                        
+                        # Forward pass through decoder
+                        decoder_output, decoder_hidden, decoder_attn_weight = DecoderModel(
                             decoder_input, 
                             decoder_hidden, 
                             context_vector,
                             _encode_rating = _encode_rating,
                             _user_emb = current_reviewerIDs,
+                            _item_emb = current_asins,
                             _enable_attention = _enable_attention
                         )
                         # No teacher forcing: next input is decoder's own current output
@@ -283,10 +299,33 @@ class ReviewGeneration(train_test_setup):
 
                         decoder_input = torch.LongTensor([[topi[i][0] for i in range(self.batch_size)]])
                         decoder_input = decoder_input.to(self.device)
+                        
+                        """
+                        coverage
+                        """
+                        if(_use_coverage):
+                            _softmax_output = DecoderModel.get_softmax_output()
+                            _current_prob = _softmax_output.unsqueeze(0)
+
+                            if(t==0):
+                                _previous_prob_sum = _current_prob
+                            else:
+                                # sum up previous probability
+                                _previous_prob_sum = _previous_prob_sum + _current_prob
+                                DecoderModel.set_coverage_prob(_previous_prob_sum, _use_coverage)
+
+                            tmp = torch.cat((_previous_prob_sum, _current_prob), dim = 0)
+                            # extract min values
+                            _coverage_mechanism_ = torch.min(tmp, dim = 0).values
+
+                            _coverage_mechanism_sum = torch.sum(_coverage_mechanism_, dim=1)
+                            coverage_loss += torch.sum(_coverage_mechanism_sum, dim=0)
+                            pass
 
                         # Calculate and accumulate loss
                         nll_loss = criterion(decoder_output, target_variable[t])
                         decoder_loss += nll_loss
+
 
                 
                 # freeze.parameters
@@ -361,6 +400,8 @@ class ReviewGeneration(train_test_setup):
             # _ep ='36'  # 0521 add rating version
             # _ep ='26'  # 0521 add rating version
             _ep ='52'  # 0521 add rating version
+            # _ep ='11'  # 0701 full interaction pre-train
+            _ep ='10'  # 0705 _all_interaction6_item.rgm.full.turn1.8.1 PRETRAIN
             IntraGRU, InterGRU = self._load_pretrain_item_net(pretrain_model_path, _ep)
 
             # Use appropriate device
@@ -451,6 +492,11 @@ class ReviewGeneration(train_test_setup):
 
             print("ep:{}, _flag:{}".format(Epoch, _flag))
 
+            # if Epoch > 20:
+            #     self.teacher_forcing_ratio = 0.6
+            # elif Epoch > 10:
+            #     self.teacher_forcing_ratio = 0.5
+
             # Run a training iteration with batch
             hann_group_loss, decoder_group_loss = self._train_iteration_grm(
                 IntraGRU, InterGRU, DecoderModel, 
@@ -493,6 +539,7 @@ class ReviewGeneration(train_test_setup):
                 IntraGRU, 
                 InterGRU, 
                 DecoderModel, 
+                Epoch,
                 isCatItemVec=isCatItemVec, 
                 concat_rating=concat_rating,
                 write_insert_sql=True,
@@ -520,17 +567,21 @@ class ReviewGeneration(train_test_setup):
         pass
 
     def evaluate_generation(self, 
-        IntraGRU, InterGRU, DecoderModel, 
+        IntraGRU, InterGRU, DecoderModel, Epoch, 
         isCatItemVec=False, concat_rating=False,
         isWriteAttn=False,
         write_origin=False,
         write_insert_sql=False,
         _use_coverage=False,
         _write_mode = 'evaluate',
+        visulize_attn_epoch = 0
         ):
         
+        EngStopWords = set(stopwords.words('english'))
+
         group_loss = 0
         decoder_epoch_loss = 0
+        AttnVisualize = Visualization(self.save_dir, visulize_attn_epoch, self.num_of_reviews)
 
         batch_bleu_score_1 = 0
         batch_bleu_score_2 = 0
@@ -595,7 +646,32 @@ class ReviewGeneration(train_test_setup):
                                 inter_intput_rating = torch.cat(
                                     (inter_intput_rating, _encode_rating) , 0
                                     )                             
-                                
+
+                    # Writing Intra-attention weight to .html file
+                    if(_write_mode == 'attention'):
+
+                        for index_ , candidateObj_ in enumerate(current_asins):
+
+                            intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
+                            word_indexes = input_variable[:,index_].tolist()
+                            sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
+                            
+                            new_weights = [float(wts/sum(weights[0])) for wts in weights[0]]
+
+                            for w_index, word in enumerate(sentence[0].split()):
+                                if(word in EngStopWords):
+                                    new_weights[w_index] = new_weights[w_index]*0.001
+                                if(new_weights[w_index]<0.0001):
+                                    new_weights[w_index] = 0
+
+                            AttnVisualize.createHTML(
+                                sentence, 
+                                [new_weights], 
+                                reviews_ctr,
+                                # fname='{}@{}'.format( self.userObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
+                                fname='{}@{}'.format( self.itemObj.index2asin[candidateObj_.item()], reviews_ctr)
+                                )
+
                 with torch.no_grad():
                     outputs, inter_hidden, inter_attn_score, context_vector  = InterGRU(
                         interInput, 
@@ -667,11 +743,11 @@ class ReviewGeneration(train_test_setup):
 
                     if(t == 0 and _use_coverage):
                         # Set up initial coverage probability
-                        initial_coverage_prob = torch.zeros(1, 80, self.voc.num_words)
+                        initial_coverage_prob = torch.zeros(1, self.batch_size, self.voc.num_words)
                         initial_coverage_prob = initial_coverage_prob.to(self.device)
                         DecoderModel.set_coverage_prob(initial_coverage_prob, _use_coverage)
 
-                    decoder_output, decoder_hidden = DecoderModel(
+                    decoder_output, decoder_hidden, decoder_attn_weight = DecoderModel(
                         decoder_input, 
                         decoder_hidden, 
                         context_vector,
@@ -810,12 +886,21 @@ Generate: {' '.join(decoded_words)}
                     bleu_score_3 += bleu_score_3_
                     bleu_score_4 += bleu_score_4_
 
-                    # ROUGE Score Calculation
-                    _rouge_score_current = rouge.get_scores(hypothesis, reference)[0]
+                    if Epoch >3:
+                        # ROUGE Score Calculation
+                        try:
+                            _rouge_score_current = rouge.get_scores(hypothesis, reference)[0]
+                            for _rouge_method, _metrics in _rouge_score_current.items():
+                                for _key, _val in _metrics.items():
+                                    _rouge_score[_rouge_method][_key] += _val                         
+                            pass
+                        except Exception as msg:
+                            print(msg)
+                            stop= 1
+                            pass
                     
-                    for _rouge_method, _metrics in _rouge_score_current.items():
-                        for _key, _val in _metrics.items():
-                            _rouge_score[_rouge_method][_key] += _val                    
+                    
+                   
 
                     # Write down sentences
                     if _write_mode =='generate':
@@ -843,10 +928,11 @@ Generate: {' '.join(decoded_words)}
                 batch_bleu_score_3 += (bleu_score_3/len(current_reviewerIDs))
                 batch_bleu_score_4 += (bleu_score_4/len(current_reviewerIDs))
 
-                # Average rouge score through reviewer
-                for _rouge_method, _metrics in _rouge_score.items():
-                    for _key, _val in _metrics.items():
-                        average_rouge_score[_rouge_method][_key] += (_val/len(current_reviewerIDs))
+                if Epoch >3:
+                    # Average rouge score through reviewer
+                    for _rouge_method, _metrics in _rouge_score.items():
+                        for _key, _val in _metrics.items():
+                            average_rouge_score[_rouge_method][_key] += (_val/len(current_reviewerIDs))
 
 
         num_of_iter = len(self.testing_batches[0])*len(self.testing_batch_labels)
@@ -861,9 +947,10 @@ Generate: {' '.join(decoded_words)}
         
         _nllloss = decoder_epoch_loss/num_of_iter
         
-        for _rouge_method, _metrics in average_rouge_score.items():
-            for _key, _val in _metrics.items():
-                average_rouge_score[_rouge_method][_key] = _val/num_of_iter
+        if Epoch >3:
+            for _rouge_method, _metrics in average_rouge_score.items():
+                for _key, _val in _metrics.items():
+                    average_rouge_score[_rouge_method][_key] = _val/num_of_iter
 
 
         return RMSE, _nllloss, batch_bleu_score, average_rouge_score
@@ -1300,7 +1387,6 @@ Generate: {' '.join(decoded_words)}
 
         return RMSE, batch_bleu_score, average_rouge_score
     
-
     def evaluate_nrt_generation(self, NRT, NRTD):
 
         for batch_ctr in range(len(self.testing_batches[0])): #how many batches

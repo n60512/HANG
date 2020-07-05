@@ -86,10 +86,6 @@ def DrawDistibution(sentences_length):
     plt.show()
 
 
-def search_covering_area(sentences_length, percentage=90):
-
-
-    pass
 
 #%%
 conn = DBConnection()

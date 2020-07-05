@@ -12,6 +12,20 @@ import pickle
 from utils.DBconnector import DBConnection
 from nltk.corpus import stopwords
 
+# PAD_token = 0  # Used for padding short sentences
+# NUM_token = 1
+
+# class Voc:
+#     def __init__(self, name):
+#         self.name = name
+#         self.word2index = {}
+#         self.word2count = {}
+#         self.index2word = {PAD_token: "PAD", NUM_token: "<number>"}
+#         self.num_words = 2
+
+#         self.word2count["PAD"] = 1
+#         self.word2count["<number>"] = 1
+
 PAD_token = 0  # Used for padding short sentences
 
 class Voc:
@@ -391,6 +405,13 @@ class Preprocess:
         s = re.sub(r"([.!?])", r" \1", s)
         s = re.sub(r"[^a-zA-Z.!?]+", r" ", s)
         s = re.sub(r"\s+", r" ", s).strip()
+
+        # <num>
+        # s = re.sub(r"([.!?])", r" \1", s)
+        # s = re.sub(r"[^a-zA-Z0-9.!?]+", r" ", s)
+        # s = re.sub(r"(\d+)", r" <number>", s)
+        # s = re.sub(r"\s+", r" ", s).strip()
+    
         return s
 
     def _zero_padding(self, l, fillvalue=PAD_token):

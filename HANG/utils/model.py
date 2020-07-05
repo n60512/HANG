@@ -2,6 +2,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+    ### Concat. bi-gru hidden
+        # self.concat_bigru = nn.Linear(self.hidden_size * 2, hidden_size)
+
+        # _bigru_method = 'concat'
+        # if(_bigru_method == 'sum'):
+        #     # Sum bidirectional GRU outputs
+        #     outputs = outputs[:, :, :self.hidden_size] + outputs[:, : ,self.hidden_size:]
+        # elif(_bigru_method == 'concat'):
+        #     outputs = torch.cat((outputs[:, :, :self.hidden_size], outputs[:, : ,self.hidden_size:]), 2)
+        #     stop = 1
+        #     outputs = F.relu(self.concat_bigru(outputs))
+
 class IntraReviewGRU(nn.Module):
     def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, method = 'dualFC'):
         super(IntraReviewGRU, self).__init__()
@@ -464,7 +476,7 @@ class DecoderGRU(nn.Module):
         output = self.logsoftmax(output)
 
         # Return output and final hidden state
-        return output, hidden
+        return output, hidden, attn_weights
 
 class HANN_i(nn.Module):
     def __init__(self, hidden_size, embedding, itemEmbedding, userEmbedding, n_layers=1, dropout=0, latentK = 64, 
@@ -531,11 +543,18 @@ class HANN_i(nn.Module):
             inter_attn_score = key_vector * query_vector
             
         elif (self.method=='general'):
+            # before 0702
             energy = self.attn(query_vector)
             x = F.relu(key_vector * energy)
+            # x = (key_vector * energy)
             weighting_score = self.linear_beta(x)
             # Calculate attention score            
             inter_attn_score = torch.softmax(weighting_score, dim = 0)
+
+            # # after 0702
+            # energy = self.attn(query_vector)
+            # weighting_score = torch.sum(key_vector * energy, dim=2).unsqueeze(2)
+            # inter_attn_score = torch.softmax(weighting_score, dim = 0)
 
         return inter_attn_score
 
@@ -636,11 +655,18 @@ class HANN_u(nn.Module):
             inter_attn_score = key_vector * query_vector
             
         elif (self.method=='general'):
+            # before 0702
             energy = self.attn(query_vector)
             x = F.relu(key_vector * energy)
+            # x = (key_vector * energy)
             weighting_score = self.linear_beta(x)
             # Calculate attention score            
             inter_attn_score = torch.softmax(weighting_score, dim = 0)
+
+            # # after 0702
+            # energy = self.attn(query_vector)
+            # weighting_score = torch.sum(key_vector * energy, dim=2).unsqueeze(2)
+            # inter_attn_score = torch.softmax(weighting_score, dim = 0)
 
         return inter_attn_score
 

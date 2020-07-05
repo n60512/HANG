@@ -1,0 +1,880 @@
+=============================
+Epoch:0
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:1
+rouge-1. f: 0.07237921879540954
+rouge-1. p: 0.23168772109420427
+rouge-1. r: 0.04372930223802855
+rouge-2. f: 8.328890686871802e-06
+rouge-2. p: 2.9151119402985074e-05
+rouge-2. r: 4.858519900497512e-06
+rouge-l. f: 0.04833500502512006
+rouge-l. p: 0.7716884328358209
+rouge-l. r: 0.02502259376246046
+=============================
+Epoch:2
+rouge-1. f: 0.06033111377605662
+rouge-1. p: 0.10420606606239485
+rouge-1. r: 0.04374795895444647
+rouge-2. f: 7.522868707969089e-06
+rouge-2. p: 1.665778251599147e-05
+rouge-2. r: 4.858519900497512e-06
+rouge-l. f: 0.04833500502512006
+rouge-l. p: 0.7716884328358209
+rouge-l. r: 0.02502259376246046
+=============================
+Epoch:3
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:4
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:5
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:6
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:7
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:8
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:9
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:10
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:11
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:12
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:13
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:14
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:15
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:16
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:17
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:18
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:19
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:20
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:21
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:22
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:23
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:24
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:25
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:26
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:27
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:28
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:29
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:30
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:31
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:32
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:33
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:34
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:35
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:36
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:37
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:38
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:39
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:40
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:41
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:42
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:43
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:44
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:45
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:46
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:47
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:48
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:49
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:50
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:51
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:52
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:53
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:54
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:55
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:56
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:57
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:58
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:59
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:60
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:61
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:62
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:63
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:64
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:65
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:66
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:67
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:68
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:69
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:70
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:71
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:72
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:73
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:74
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:75
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:76
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:77
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:78
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0
+=============================
+Epoch:79
+rouge-1. f: 0.0
+rouge-1. p: 0.0
+rouge-1. r: 0.0
+rouge-2. f: 0.0
+rouge-2. p: 0.0
+rouge-2. r: 0.0
+rouge-l. f: 0.0
+rouge-l. p: 0.0
+rouge-l. r: 0.0

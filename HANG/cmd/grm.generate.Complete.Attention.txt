@@ -1,0 +1,22 @@
+python HANG/train_grm.py \
+--mode attention \
+--save_model_freq 2 \
+--batchsize 80 \
+--net_type item_base \
+--decoder_learning_ratio 1.0 \
+--inter_attn_method general \
+--sqlfile HANG/SQL/cloth_interaction@6_itembase.sql \
+--train_test_rand_seed 42 \
+--having_interactions 6 \
+--num_of_rating 1 \
+--num_of_reviews 5 \
+--use_pretrain_word Y \
+--use_coverage Y \
+--dropout 0 \
+--setence_max_len 50 \
+--clip 50 \
+--test_on_traindata N \
+--concat_review_rating Y \
+--epoch 58 \
+--visulize_attn_epoch 58 \
+--save_dir HANG/log/origin/20200607_11_42_rgm

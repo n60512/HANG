@@ -50,6 +50,9 @@ def _train_HANN_model(data_preprocess):
         net_type = base_model_net_type
         )
 
+    # a = voc.word2index['<number>']
+    # b = voc.word2count['<number>']
+
     # pre-train words
     if(opt.use_pretrain_word == 'Y'):
         weights_matrix = data_preprocess.load_pretain_word(voc, pretrain_words)
@@ -91,7 +94,9 @@ def _train_HANN_model(data_preprocess):
     num_of_reviews_unet = opt.num_of_correspond_reviews
 
     # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
-    user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
+    # user_base_sql = R'HANG/SQL/cloth_candidate_test_on_trained.sql' #0630 test on trained
+    user_base_sql = R'HANG/SQL/_all_interaction6_item.candidate.user.sql'
+    # user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'    # original
     # user_base_sql = 'HANG/SQL/cloth_interaction@6_userbase.sample.sql'
     res, itemObj, userObj = data_preprocess.load_data(
         sqlfile=user_base_sql, 
@@ -195,7 +200,10 @@ def _train_HANN_model(data_preprocess):
         """Select testing set (`normal` or `GENERATIVE`)"""
         if(opt.sqlfile_fill_user==''):
             # user_base_sql = R'HANG/SQL/cloth_candidate_asin.sql'
-            user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'
+            
+            # user_base_sql = R'HANG/SQL/cloth_candidate_test_on_trained.sql' #0630 test on trained
+            user_base_sql = R'HANG/SQL/_all_interaction6_item.candidate.user.sql'
+            # user_base_sql = R'HANG/SQL/cloth_candidate_asin_without_rm_sw.sql'    # original
             # user_base_sql = 'HANG/SQL/cloth_interaction@6_userbase.sample.sql'
         else:
             user_base_sql = opt.sqlfile_fill_user   # select the generative table
@@ -399,16 +407,16 @@ def _train_HANN_model(data_preprocess):
         # Loading MFC
         MFC = torch.load(R'{}/Model/MFC_epoch{}'.format(opt.save_dir, opt.visulize_attn_epoch))
 
+
         # Evaluating hybird model
-        RMSE = rating_regresstion._hybird_evaluate(
+        RMSE, Accuracy, cnf_matrix = rating_regresstion._hybird_evaluate(
             IntraGRU, InterGRU, correspond_IntraGRU, correspond_InterGRU, MFC,
             testing_batches, testing_external_memorys, testing_batch_labels, testing_asins, testing_reviewerIDs,
             correspond_batches, 
             isCatItemVec=concat_item, 
             concat_rating= concat_rating,
             visulize_attn_epoch=opt.visulize_attn_epoch,
-            isWriteAttn=True,
-            candidateObj=userObj
+            isWriteAttn=True
             )
 
         print('Epoch:{}\tMSE:{}\t'.format(opt.visulize_attn_epoch, RMSE))

@@ -57,8 +57,9 @@ class Visualization(object):
         var min_intensity = Number.MAX_SAFE_INTEGER;
         for (var i = 0; i < intensity.length; i++) {
         intensity[i] = 0.0;
+        // 新增規則 weights大於0才作畫
         for (var j = -half_ngram; j < ngram_length-half_ngram; j++) {
-        if (i+j < intensity.length && i+j > -1) {
+        if (i+j < intensity.length && i+j > -1 && trigram_weights[k][i] > 0) {
         intensity[i] += trigram_weights[k][i + j];
         }
         }
@@ -79,7 +80,7 @@ class Visualization(object):
         intensity[i] = (intensity[i] - min_intensity) / denominator;
         }
         if (k%2 == 0) {
-        var heat_text = "<p><br><b>Example:</b><br>";
+        var heat_text = "<p><br><b>Example {fname}:</b><br>";
         } else {
         var heat_text = "<b>Example:</b><br>";
         }

@@ -99,7 +99,7 @@ def _train_test(data_preprocess):
 
     # Generate testing batches
     if(opt.mode == "eval_mse" or opt.mode == "eval_bleu" 
-        or opt.mode == "generation" or opt.mode == "train"):
+        or opt.mode == "generation" or opt.mode == 'attention' or opt.mode == "train"):
         
         review_generation.set_testing_set(
             test_on_train_data = opt.test_on_traindata
@@ -110,9 +110,13 @@ def _train_test(data_preprocess):
             _sql_mode = 'validation'
             # _sql_mode = 'test'
             pass
-        elif (opt.mode == 'eval_bleu' or opt.mode == "generation" or opt.mode == 'eval_mse'):
+        elif (opt.mode == 'eval_bleu' or opt.mode == "generation" or opt.mode == 'eval_mse' or opt.mode == 'attention'):
             # _sql_mode = 'test'
-            _sql_mode = 'validation'
+
+            if(opt.test_on_traindata == 'Y'):
+                _sql_mode = 'train'
+            else:
+                _sql_mode = 'validation'
             pass
 
         # Loading testing data from database
@@ -229,6 +233,7 @@ def _train_test(data_preprocess):
             IntraGRU, 
             InterGRU, 
             DecoderModel, 
+            chose_epoch,
             isCatItemVec=False, 
             concat_rating = True, 
             write_insert_sql=True,
@@ -269,6 +274,7 @@ def _train_test(data_preprocess):
                 IntraGRU, 
                 InterGRU, 
                 DecoderModel, 
+                Epoch,
                 isCatItemVec=False, 
                 concat_rating = True,
                 write_insert_sql = True,
@@ -292,6 +298,56 @@ def _train_test(data_preprocess):
                     for _key, _val in _metrics.items():
                         file.write('{}. {}: {}\n'.format(_rouge_method, _key, _val))
                         print('{}. {}: {}'.format(_rouge_method, _key, _val))
+
+    # Testing(chose epoch)
+    if(opt.mode == "attention"):
+
+        Epoch = opt.visulize_attn_epoch
+
+        # Loading IntraGRU
+        IntraGRU = list()
+        for idx in range(opt.num_of_reviews):
+            model = torch.load(R'{}/Model/IntraGRU_idx{}_epoch{}'.format(
+                opt.save_dir, 
+                idx, 
+                Epoch
+                )
+            )
+            model.eval()
+            IntraGRU.append(model)
+
+        # Loading InterGRU
+        InterGRU = torch.load(R'{}/Model/InterGRU_epoch{}'.format(opt.save_dir, Epoch))
+        InterGRU.eval()
+
+        # Loading DecoderModel
+        DecoderModel = torch.load(R'{}/Model/DecoderModel_epoch{}'.format(opt.save_dir, Epoch))
+        DecoderModel.eval()
+    
+        # evaluating
+        RMSE, _nllloss, batch_bleu_score, average_rouge_score = review_generation.evaluate_generation(
+            IntraGRU, 
+            InterGRU, 
+            DecoderModel, 
+            Epoch,
+            isCatItemVec=False, 
+            concat_rating = True,
+            write_insert_sql = True,
+            write_origin = True,
+            _use_coverage = _use_coverage,
+            _write_mode = 'attention',
+            visulize_attn_epoch=Epoch
+            )
+
+        print('Epoch:{}\tMSE:{}\tNNL:{}\t'.format(Epoch, RMSE, _nllloss))
+
+        for num, val in enumerate(batch_bleu_score):
+            print('\nBLEU SCORE {}: {}'.format((num+1), val))
+
+        for _rouge_method, _metrics in average_rouge_score.items():
+            for _key, _val in _metrics.items():
+                print('{}. {}: {}'.format(_rouge_method, _key, _val))
+
 
     # Evaluation
     if(opt.mode == "eval_mse"):

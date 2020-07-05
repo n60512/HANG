@@ -1,0 +1,20 @@
+python HANG/train_single.py \
+--mode train \
+--save_model_freq 1 \
+--epoch 20 \
+--batchsize 512 \
+--hidden 300 \
+--lr 0.00002 \
+--net_type item_base \
+--intra_attn_method dualFC \
+--inter_attn_method general \
+--sqlfile HANG/SQL/_all_interaction6_item.rgm.full.turn1.8.1.sql \
+--train_test_rand_seed 42 \
+--having_interactions 6 \
+--num_of_rating 1 \
+--num_of_reviews 5 \
+--use_pretrain_word Y \
+--concat_review_rating Y \
+--dropout 0.3 \
+--setence_max_len 50 \
+--clip 50 

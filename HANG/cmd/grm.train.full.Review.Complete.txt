@@ -16,7 +16,7 @@ python HANG/train_grm.py \
 --clip 50 \
 --test_on_traindata N \
 --save_model_freq 2 \
---epoch_to_store 40 \
+--epoch_to_store 10 \
 --epoch 60 \
 --use_coverage Y \
 --concat_review_rating Y

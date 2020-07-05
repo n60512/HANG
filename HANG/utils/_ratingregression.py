@@ -917,7 +917,8 @@ class RatingRegresstion(train_test_setup):
         training_batches, training_asin_batches, validate_batch_labels, validate_asins, validate_reviewerIDs, 
         correspond_batches,
         isCatItemVec=False, concat_rating=False,
-        isWriteAttn=False, candidateObj=None, visulize_attn_epoch=0):
+        isWriteAttn=False, candidateObj=None, 
+        visulize_attn_epoch=0):
         
         group_loss = 0
         _accuracy = 0
@@ -983,24 +984,24 @@ class RatingRegresstion(train_test_setup):
                                     (inter_intput_rating, _encode_rating) , 0
                                     )
 
-                    # # Writing Intra-attention weight to .html file
-                    # if(isWriteAttn):
-                        
-                    #     """Only considerate user attention"""
-                    #     current_candidates = current_reviewerIDs
-                        
-                    #     for index_ , candidateObj_ in enumerate(current_candidates):
+                    # Writing Intra-attention weight to .html file
+                    if(isWriteAttn):
 
-                    #         intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
-                    #         word_indexes = input_variable[:,index_].tolist()
-                            
-                    #         sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
-                    #         AttnVisualize.createHTML(
-                    #             sentence, 
-                    #             weights, 
-                    #             reviews_ctr, 
-                    #             fname='{}@{}'.format( userObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
-                    #             )                           
+                        for index_ , candidateObj_ in enumerate(current_asins):
+
+                            intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
+                            word_indexes = input_variable[:,index_].tolist()
+                            sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
+                                                    
+                            new_weights = [float(wts/sum(weights[0])) for wts in weights[0]]
+
+                            AttnVisualize.createHTML(
+                                sentence, 
+                                [new_weights], 
+                                reviews_ctr,
+                                # fname='{}@{}'.format( self.userObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
+                                fname='{}@{}'.format( self.itemObj.index2asin[candidateObj_.item()], reviews_ctr)
+                                )                       
                                 
                 with torch.no_grad():
                     outputs, intra_hidden, inter_attn_score  = InterGRU(
@@ -1059,23 +1060,23 @@ class RatingRegresstion(train_test_setup):
                                     (inter_intput_rating, _encode_rating) , 0
                                     ) 
 
-                    # Writing Intra-attention weight to .html file
-                    if(isWriteAttn):
+                    # # Writing Intra-attention weight to .html file
+                    # if(isWriteAttn):
                         
-                        """Only considerate user attention"""
-                        current_candidates = correspond_current_reviewerIDs
+                    #     """Only considerate user attention"""
+                    #     current_candidates = correspond_current_reviewerIDs
                         
-                        for index_ , candidateObj_ in enumerate(current_candidates):
+                    #     for index_ , candidateObj_ in enumerate(current_candidates):
 
-                            intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
-                            word_indexes = input_variable[:,index_].tolist()
-                            sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
-                            AttnVisualize.createHTML(
-                                sentence, 
-                                weights, 
-                                reviews_ctr, 
-                                fname='{}@{}'.format( candidateObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
-                                )       
+                    #         intra_attn_wts = intra_attn_score[:,index_].squeeze(1).tolist()
+                    #         word_indexes = input_variable[:,index_].tolist()
+                    #         sentence, weights = AttnVisualize.wdIndex2sentences(word_indexes, self.voc.index2word, intra_attn_wts)
+                    #         AttnVisualize.createHTML(
+                    #             sentence, 
+                    #             weights, 
+                    #             reviews_ctr, 
+                    #             fname='{}@{}'.format( candidateObj.index2reviewerID[candidateObj_.item()], reviews_ctr)
+                    #             )       
 
                 with torch.no_grad():
                     correspond_net_outputs, intra_hidden, inter_attn_score  = correspond_inter_GRU(

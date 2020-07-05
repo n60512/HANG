@@ -5,7 +5,6 @@ python HANG/train_hybird.py \
 --save_model_freq 4 \
 --setence_max_len 50 \
 --having_interactions 6 \
---epoch 120 \
 --num_of_reviews 5 \
 --num_of_correspond_reviews 4 \
 --batchsize 80 \
@@ -26,4 +25,5 @@ python HANG/train_hybird.py \
 --concat_review_rating Y \
 --visulize_attn_epoch 0 \
 --hybird Y \
---epoch_to_store 50
+--epoch 120 \
+--epoch_to_store 120

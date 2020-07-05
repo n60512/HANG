@@ -1,6 +1,6 @@
 python HANG/train_hybird.py \
 --mode test \
---sqlfile HANG/SQL/cloth_interaction@6_itembase.sql \
+--sqlfile HANG/SQL/_test_on_trained_item_0630.sql \
 --train_test_rand_seed 42 \
 --save_model_freq 2 \
 --setence_max_len 50 \
